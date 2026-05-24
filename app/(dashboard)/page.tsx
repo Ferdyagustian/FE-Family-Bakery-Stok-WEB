@@ -1,7 +1,7 @@
 import prisma from '@/lib/db'
 import { SalesChart } from '@/components/SalesChart'
 import { ProductSalesBreakdown } from '@/components/ProductSalesBreakdown'
-import { Store, Package, TrendingUp, CircleDollarSign } from 'lucide-react'
+import { Store, Package, TrendingUp, CircleDollarSign, Boxes } from 'lucide-react'
 import { Suspense } from 'react'
 
 // Bukan force-dynamic agar bisa di-cache, tapi revalidate tiap 60 detik
@@ -12,12 +12,20 @@ async function DashboardData() {
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-  const [stores, productCount, salesAgg, sales] = await Promise.all([
+  const [stores, productCount, stockAgg, salesAgg, sales] = await Promise.all([
     // Hanya ambil data yang dibutuhkan
     prisma.store.findMany({ select: { id: true, name: true } }),
 
-    // Count saja, bukan findMany
-    prisma.product.count(),
+    // Hitung varian menu unik (berdasarkan nama yang berbeda)
+    prisma.product.findMany({
+      distinct: ['name'],
+      select: { name: true },
+    }),
+
+    // Hitung total fisik barang di seluruh cabang
+    prisma.product.aggregate({
+      _sum: { stockQuantity: true }
+    }),
 
     // Agregasi total di level DB — JAUH lebih efisien
     prisma.sale.aggregate({
@@ -45,6 +53,7 @@ async function DashboardData() {
 
   const totalRevenue = salesAgg._sum.totalAmount ?? 0
   const totalSales = salesAgg._count.id
+  const totalStock = stockAgg._sum.stockQuantity ?? 0
 
   const formattedSales = sales.map((s: any) => ({
     date: s.saleDate.toISOString(),
@@ -67,7 +76,7 @@ async function DashboardData() {
   return (
     <>
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-6">
         <StatCard
           title="Total Cabang"
           value={stores.length}
@@ -75,10 +84,16 @@ async function DashboardData() {
           bg="bg-primary-50 dark:bg-primary-950/20"
         />
         <StatCard
-          title="Total Produk"
-          value={productCount}
+          title="Total Varian Menu"
+          value={productCount.length}
           icon={<Package className="w-6 h-6 sm:w-7 sm:h-7 text-purple-600" />}
           bg="bg-purple-50 dark:bg-purple-950/20"
+        />
+        <StatCard
+          title="Total Stok Fisik"
+          value={totalStock.toLocaleString('id-ID')}
+          icon={<Boxes className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600" />}
+          bg="bg-blue-50 dark:bg-blue-950/20"
         />
         <StatCard
           title="Total Transaksi"
@@ -146,8 +161,8 @@ function DashboardSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
       {/* KPI Cards skeleton */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-        {[...Array(4)].map((_, i) => (
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-6">
+        {[...Array(5)].map((_, i) => (
           <div key={i} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 sm:p-5">
             <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-xl mb-3" />
             <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-2/3 mb-2" />
