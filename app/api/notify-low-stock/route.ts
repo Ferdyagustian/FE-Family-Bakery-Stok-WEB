@@ -3,10 +3,11 @@ import prisma from '@/lib/db'
 import { NextResponse } from 'next/server'
 import { generateLowStockEmailHTML } from '@/lib/email-templates'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 const THRESHOLD = parseInt(process.env.LOW_STOCK_THRESHOLD || '10')
 
 export async function GET(request: Request) {
+  const resend = new Resend(process.env.RESEND_API_KEY || 'dummy_key')
+  
   // 1. Verifikasi authorization header (Cron Secret)
   const authHeader = request.headers.get('authorization')
   if (
