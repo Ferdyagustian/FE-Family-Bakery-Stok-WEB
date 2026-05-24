@@ -1,5 +1,6 @@
 import { Store } from 'lucide-react'
 import { loginAction } from '@/lib/actions/auth'
+import { PasswordInput } from '@/components/PasswordInput'
 
 type SearchParams = Promise<{ error?: string }>
 
@@ -59,15 +60,7 @@ export default async function LoginPage(props: { searchParams: SearchParams }) {
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                 Password
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                autoComplete="current-password"
-                className="flex h-11 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 dark:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="Masukkan password"
-              />
+              <PasswordInput />
             </div>
 
             <button
