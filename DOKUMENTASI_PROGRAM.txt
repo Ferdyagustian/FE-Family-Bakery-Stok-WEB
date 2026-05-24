@@ -1,0 +1,530 @@
+================================================================================
+         DOKUMENTASI LENGKAP PROGRAM: FAMILY BAKERY - SISTEM MANAJEMEN STOK WEB
+================================================================================
+Tanggal Dibuat  : 24 Mei 2026
+Versi Aplikasi  : 0.1.0
+Dibuat Oleh     : Tim Pengembang Family Bakery
+Repository      : Ferdyagustian/Family-Bakery-Stok-WEB
+================================================================================
+
+
+================================================================================
+1. DESKRIPSI UMUM PROGRAM
+================================================================================
+
+Family Bakery - Sistem Manajemen Stok WEB adalah aplikasi web berbasis cloud yang
+dirancang khusus untuk membantu usaha roti/bakery dalam mengelola stok produk,
+mencatat penjualan, memantau performa cabang, serta menghasilkan laporan bisnis
+secara digital.
+
+Aplikasi ini ditargetkan untuk bisnis bakery yang memiliki satu atau lebih cabang
+(multi-store), dengan sistem peran pengguna (Admin dan Manager) sehingga setiap
+cabang bisa dioperasikan secara independen namun tetap terpantau dari satu
+dashboard terpusat.
+
+================================================================================
+2. TUJUAN PROGRAM
+================================================================================
+
+- Menggantikan pencatatan manual (buku/kertas) dengan sistem digital berbasis web
+- Memudahkan pengelolaan stok produk di setiap cabang toko
+- Memantau penjualan harian, mingguan, dan bulanan secara real-time
+- Menghasilkan laporan penjualan dan stok dalam format Excel (.xlsx)
+- Memberikan peringatan otomatis ketika stok produk hampir habis
+- Memungkinkan pengelolaan banyak cabang dari satu akun admin
+
+================================================================================
+3. TEKNOLOGI YANG DIGUNAKAN (TECH STACK)
+================================================================================
+
+--- FRONTEND ---
+- Framework    : Next.js 16.2.1 (React 19.2.4)
+- Bahasa       : TypeScript 5
+- Styling      : Tailwind CSS 4
+- Ikon         : Lucide React 1.7.0
+- Grafik/Chart : Recharts 3.8.1
+- Tema         : next-themes 0.4.6 (Dark/Light mode)
+- Export Excel : xlsx 0.18.5
+
+--- BACKEND ---
+- Framework    : Next.js App Router (API Routes / Server Actions)
+- Bahasa       : TypeScript 5
+- ORM          : Prisma 6.19.2
+- Autentikasi  : JWT (jose 6.2.3) + bcryptjs 3.0.3
+- Sesi         : Cookie HTTP-Only (7 hari masa aktif)
+
+--- DATABASE ---
+- Provider     : PostgreSQL
+- Host         : Supabase (cloud database)
+- ORM Client   : @prisma/client 6.19.2
+- Koneksi      : Environment variable (DATABASE_URL)
+
+--- CLOUD & DEPLOYMENT ---
+- Platform Deploy : Vercel
+- Storage Gambar  : Supabase Storage
+- Konfigurasi     : vercel.json, .env
+
+--- TOOLS PENGEMBANGAN ---
+- ESLint            : 9 (eslint-config-next 16.2.1)
+- TypeScript        : 5
+- PostCSS           : @tailwindcss/postcss 4
+- Prisma CLI        : 6.19.2
+
+================================================================================
+4. ARSITEKTUR APLIKASI
+================================================================================
+
+Aplikasi menggunakan arsitektur Next.js App Router modern dengan:
+
+  a) Server Components
+     - Pengambilan data langsung dari database di sisi server
+     - Efisiensi lebih tinggi (tidak perlu round-trip ke client)
+     - ISR (Incremental Static Regeneration) dengan revalidate 60 detik
+
+  b) Client Components
+     - Form interaktif, modal, dropdown, chart interaktif
+     - State management lokal (React useState / useMemo)
+
+  c) Server Actions
+     - Mutasi data (tambah, edit, hapus produk/toko/pengguna)
+     - Login dan logout autentikasi
+
+  d) API Routes
+     - /api/auth     : Login endpoint
+     - /api/export   : Export data penjualan dan stok
+     - /api/upload   : Upload gambar produk ke Supabase Storage
+
+================================================================================
+5. STRUKTUR FOLDER PROYEK
+================================================================================
+
+Family bakery/
+├── app/
+│   ├── (dashboard)/           <- Halaman utama (dilindungi login)
+│   │   ├── page.tsx           <- Dashboard utama (KPI + Grafik)
+│   │   ├── layout.tsx         <- Layout dashboard (sidebar + header)
+│   │   ├── loading.tsx        <- Skeleton loading dashboard
+│   │   ├── stores/            <- Manajemen cabang toko
+│   │   │   ├── page.tsx       <- Daftar semua cabang
+│   │   │   └── [id]/          <- Detail cabang (produk, penjualan)
+│   │   │       ├── page.tsx
+│   │   │       └── restock/   <- Halaman restock produk
+│   │   └── reports/           <- Halaman laporan & ekspor
+│   ├── api/
+│   │   ├── auth/              <- API autentikasi login
+│   │   ├── export/            <- API ekspor data ke Excel
+│   │   └── upload/            <- API upload gambar produk
+│   ├── login/                 <- Halaman login
+│   ├── globals.css            <- CSS global
+│   └── layout.tsx             <- Root layout aplikasi
+│
+├── components/
+│   ├── AddProductModal.tsx    <- Modal tambah produk baru
+│   ├── AddStoreForm.tsx       <- Form tambah cabang toko
+│   ├── DashboardShell.tsx     <- Shell layout dashboard (sidebar toggle)
+│   ├── DeleteStoreButton.tsx  <- Tombol hapus cabang (dengan konfirmasi)
+│   ├── EditProductModal.tsx   <- Modal edit produk (nama, harga, stok, dll)
+│   ├── ExportPanel.tsx        <- Panel ekspor data ke Excel
+│   ├── LowStockAlert.tsx      <- Alert peringatan stok menipis
+│   ├── ManageStoreUsers.tsx   <- Kelola pengguna per cabang
+│   ├── ProductCard.tsx        <- Kartu tampilan produk
+│   ├── ProductSalesBreakdown  <- Breakdown penjualan per produk
+│   ├── ProductSearchList.tsx  <- Pencarian dan daftar produk
+│   ├── RestockForm.tsx        <- Form penambahan stok & pencatatan jual
+│   ├── SalesChart.tsx         <- Grafik penjualan (Recharts)
+│   ├── Sidebar.tsx            <- Navigasi sidebar (adaptive per role)
+│   ├── ThemeProvider.tsx      <- Provider tema dark/light
+│   └── ThemeToggle.tsx        <- Tombol toggle tema
+│
+├── lib/
+│   ├── db.ts                  <- Koneksi Prisma database
+│   ├── session.ts             <- Manajemen sesi JWT (encrypt/decrypt)
+│   ├── supabase.ts            <- Konfigurasi Supabase client
+│   └── actions/
+│       ├── auth.ts            <- Server Action: login/logout
+│       ├── product.ts         <- Server Action: CRUD produk & penjualan
+│       ├── store.ts           <- Server Action: CRUD toko/cabang
+│       └── user.ts            <- Server Action: CRUD pengguna
+│
+├── prisma/
+│   └── schema.prisma          <- Skema database (model & relasi)
+│
+├── public/                    <- Asset statis (logo, gambar)
+├── scripts/                   <- Script utilitas
+├── .env                       <- Variabel lingkungan (rahasia)
+├── next.config.ts             <- Konfigurasi Next.js
+├── vercel.json                <- Konfigurasi deployment Vercel
+└── package.json               <- Dependensi dan skrip NPM
+
+================================================================================
+6. MODEL DATABASE (SKEMA PRISMA)
+================================================================================
+
+Program ini menggunakan 4 tabel utama:
+
+--- Model: User ---
+  id           : String (ID unik, CUID)
+  username     : String (unik)
+  passwordHash : String (password terenkripsi bcrypt)
+  name         : String (opsional, nama tampilan)
+  role         : Enum [ADMIN | MANAGER]
+  storeId      : String (opsional, cabang yang dikelola)
+  createdAt    : DateTime
+
+--- Model: Store (Cabang) ---
+  id        : String (ID unik)
+  name      : String (nama cabang)
+  location  : String (opsional, lokasi/alamat)
+  products  : Product[] (relasi ke produk)
+  sales     : Sale[] (relasi ke penjualan)
+  users     : User[] (relasi ke pengguna)
+  createdAt : DateTime
+  updatedAt : DateTime
+
+--- Model: Product (Produk) ---
+  id            : String (ID unik)
+  storeId       : String (cabang pemilik produk)
+  name          : String (nama produk)
+  description   : String (opsional, deskripsi)
+  imageUrl      : String (opsional, URL gambar)
+  price         : Float (harga jual)
+  discount      : Int (diskon %, default 0)
+  stockQuantity : Int (jumlah stok, default 0)
+  createdAt     : DateTime
+  updatedAt     : DateTime
+
+--- Model: Sale (Penjualan) ---
+  id           : String (ID unik)
+  storeId      : String (cabang transaksi)
+  productId    : String (produk yang dijual)
+  quantitySold : Int (jumlah unit terjual)
+  totalAmount  : Float (total pendapatan)
+  profitAmount : Float (total keuntungan)
+  saleDate     : DateTime (tanggal & waktu transaksi)
+
+Indeks database dioptimalkan pada:
+  - storeId, productId, saleDate (query cepat)
+  - storeId + saleDate (kombinasi untuk laporan per cabang)
+  - stockQuantity (untuk filter stok rendah)
+
+================================================================================
+7. FITUR-FITUR PROGRAM
+================================================================================
+
+7.1 AUTENTIKASI & KEAMANAN
+    - Login dengan username + password
+    - Password dienkripsi menggunakan bcryptjs
+    - Sesi berbasis JWT (HS256) yang disimpan di cookie HTTP-Only
+    - Masa aktif sesi: 7 hari
+    - Cookie aman (Secure) di mode produksi
+    - Proteksi halaman: redirect ke /login jika belum login
+    - Dua level akses: ADMIN dan MANAGER
+
+7.2 SISTEM PERAN (ROLE-BASED ACCESS)
+    - ADMIN:
+        * Akses penuh ke semua fitur
+        * Dapat melihat semua cabang
+        * Dapat membuat, mengedit, dan menghapus cabang
+        * Dapat mengelola semua produk di semua cabang
+        * Dapat melihat laporan gabungan semua cabang
+        * Dapat menambah/hapus pengguna Manager per cabang
+    - MANAGER:
+        * Akses terbatas ke cabang yang ditugaskan
+        * Hanya melihat menu "Cabang Saya"
+        * Dapat mengelola produk dan stok di cabangnya sendiri
+        * Dapat mencatat penjualan di cabangnya
+
+7.3 DASHBOARD UTAMA
+    - KPI Cards (4 kartu statistik):
+        * Total Cabang aktif
+        * Total Produk (seluruh cabang)
+        * Total Transaksi (semua waktu)
+        * Total Omzet (dalam Rupiah, format disingkat: jt = juta)
+    - Grafik Penjualan (Recharts):
+        * Data 30 hari terakhir
+        * Visualisasi Revenue & Profit
+        * Filter per cabang
+    - Breakdown Penjualan per Produk
+    - Skeleton loading saat data sedang dimuat
+    - Revalidasi data otomatis setiap 60 detik (ISR)
+
+7.4 MANAJEMEN CABANG (STORES)
+    - Lihat daftar semua cabang toko
+    - Tambah cabang baru (nama + lokasi)
+    - Edit informasi cabang
+    - Hapus cabang (dengan konfirmasi)
+    - Cascade delete: hapus cabang akan menghapus semua produk & penjualannya
+    - Kelola pengguna Manager per cabang
+
+7.5 MANAJEMEN PRODUK
+    - Lihat daftar produk per cabang
+    - Tambah produk baru:
+        * Nama produk
+        * Deskripsi (opsional)
+        * Upload gambar (ke Supabase Storage)
+        * Harga jual
+        * Diskon (%)
+        * Stok awal
+    - Edit produk (semua field)
+    - Hapus produk
+    - Pencarian produk (real-time)
+    - Tampilan kartu produk dengan gambar, harga, stok, dan badge diskon
+
+7.6 PENCATATAN PENJUALAN & RESTOCK
+    - Catat penjualan produk (jumlah unit terjual)
+    - Stok otomatis berkurang saat penjualan dicatat
+    - Tambah stok (restock) produk
+    - Perhitungan otomatis: total amount & profit amount
+
+7.7 PERINGATAN STOK RENDAH (LOW STOCK ALERT)
+    - Deteksi otomatis produk dengan stok menipis
+    - Badge/indikator visual pada kartu produk
+    - Alert khusus untuk produk yang hampir habis
+    - Status stok: "Tersedia", "Hampir Habis", "Habis"
+
+7.8 LAPORAN & EKSPOR DATA
+    - Filter data berdasarkan:
+        * Jenis data: Penjualan atau Stok Produk
+        * Cabang: semua atau cabang tertentu
+        * Rentang waktu: Hari Ini, 7 Hari, 30 Hari, Bulan Ini, Custom
+    - Preview data sebelum diunduh (tampilan 50 baris pertama)
+    - Ringkasan: Total Transaksi, Total Unit, Total Omzet
+    - Download laporan ke Excel (.xlsx) dengan:
+        * Header kolom dalam Bahasa Indonesia
+        * Auto-width kolom
+        * Format mata uang Rupiah
+    - Format file laporan penjualan:
+        No | Tanggal | Cabang | Produk | Jumlah | Harga Satuan | Total
+    - Format file laporan stok:
+        No | Cabang | Produk | Harga | Stok Saat Ini | Status
+
+7.9 DARK MODE / LIGHT MODE
+    - Toggle tema terang/gelap
+    - Preferensi tema tersimpan (next-themes)
+    - Semua komponen mendukung dark mode
+    - Transisi warna halus
+
+7.10 RESPONSIVE DESIGN
+    - Layout adaptif untuk desktop, tablet, dan mobile
+    - Sidebar dapat disembunyikan (mobile hamburger menu)
+    - Grid responsif (2 kolom mobile → 4 kolom desktop)
+    - Tabel dengan horizontal scroll pada layar kecil
+
+================================================================================
+8. CARA MENJALANKAN PROGRAM (SETUP & INSTALASI)
+================================================================================
+
+PRASYARAT:
+  - Node.js versi 18 atau lebih baru
+  - npm (Node Package Manager)
+  - Akun Supabase (database PostgreSQL)
+  - Akun Vercel (untuk deployment)
+
+LANGKAH INSTALASI LOKAL:
+
+  1. Clone repository:
+     git clone https://github.com/Ferdyagustian/Family-Bakery-Stok-WEB.git
+     cd Family-Bakery-Stok-WEB
+
+  2. Install dependensi:
+     npm install
+
+  3. Buat file .env dan isi variabel berikut:
+     DATABASE_URL="postgresql://..."
+     JWT_SECRET="kunci-rahasia-anda"
+     NEXT_PUBLIC_SUPABASE_URL="https://xxx.supabase.co"
+     NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJ..."
+     SUPABASE_SERVICE_ROLE_KEY="eyJ..."
+
+  4. Jalankan migrasi database:
+     npx prisma db push
+
+  5. (Opsional) Buat akun admin awal:
+     node scripts/...
+
+  6. Jalankan server pengembangan:
+     npm run dev
+
+  7. Buka browser di: http://localhost:3000
+
+SKRIP NPM YANG TERSEDIA:
+  npm run dev        <- Server pengembangan (hot reload)
+  npm run build      <- Build produksi
+  npm run start      <- Jalankan build produksi
+  npm run lint       <- Cek kualitas kode (ESLint)
+
+DEPLOYMENT KE VERCEL:
+  - Hubungkan repository GitHub ke Vercel
+  - Tambahkan environment variables di dashboard Vercel
+  - Deploy otomatis setiap ada push ke branch utama
+
+================================================================================
+9. KELEBIHAN PROGRAM
+================================================================================
+
+1. MULTI-CABANG (MULTI-STORE)
+   Mendukung pengelolaan banyak cabang toko dari satu dashboard terpusat.
+   Admin dapat memonitor seluruh cabang secara bersamaan.
+
+2. SISTEM PERAN YANG JELAS
+   Pemisahan hak akses antara Admin (pengelola penuh) dan Manager (per cabang)
+   memastikan keamanan data dan pembagian tugas yang terstruktur.
+
+3. TEKNOLOGI MODERN & PERFORMA TINGGI
+   Menggunakan Next.js 16 dengan React Server Components, ISR, dan Suspense
+   sehingga halaman memuat lebih cepat dan pengalaman pengguna lebih halus.
+
+4. REAL-TIME DASHBOARD
+   Data dashboard diperbarui otomatis setiap 60 detik tanpa perlu refresh
+   manual, menjaga informasi selalu terkini.
+
+5. EKSPOR DATA KE EXCEL
+   Fitur laporan dengan filter lengkap dan export ke .xlsx memudahkan
+   pelaporan bisnis ke pihak manajemen atau akuntan.
+
+6. ALERT STOK MENIPIS
+   Sistem peringatan otomatis membantu pemilik bisnis menghindari kehabisan
+   stok yang bisa berdampak pada kehilangan penjualan.
+
+7. ANTARMUKA MODERN & RESPONSIF
+   Desain yang bersih, mendukung dark mode, dan responsif di semua perangkat
+   (PC, tablet, HP) meningkatkan kenyamanan penggunaan.
+
+8. KEAMANAN AUTENTIKASI YANG BAIK
+   Menggunakan bcryptjs untuk enkripsi password, JWT HS256 untuk sesi,
+   dan cookie HTTP-Only untuk mencegah serangan XSS.
+
+9. GAMBAR PRODUK
+   Mendukung upload gambar produk ke cloud (Supabase Storage) sehingga
+   tampilan produk lebih informatif dan menarik.
+
+10. OPEN SOURCE & DAPAT DIKEMBANGKAN
+    Dibangun dengan teknologi populer dan terbuka, sehingga mudah
+    dikembangkan lebih lanjut oleh pengembang lain.
+
+11. DEPLOYMENT MUDAH DI VERCEL
+    Integrasi langsung dengan Vercel memungkinkan deployment satu klik
+    dan pembaruan otomatis setiap ada perubahan kode.
+
+12. QUERY DATABASE EFISIEN
+    Menggunakan agregasi di level database (bukan di aplikasi), indeks
+    yang dioptimalkan, dan pembatasan data yang ditarik (take: 1000)
+    untuk menjaga performa meski data terus bertambah.
+
+================================================================================
+10. KEKURANGAN PROGRAM
+================================================================================
+
+1. TIDAK ADA FITUR BARCODE / QR CODE
+   Pencatatan penjualan dan stok masih dilakukan secara manual melalui form.
+   Tidak ada integrasi scanner barcode untuk mempercepat proses kasir.
+
+2. TIDAK ADA FITUR POINT OF SALE (POS) LENGKAP
+   Aplikasi ini bukan sistem kasir lengkap. Tidak ada keranjang belanja
+   multi-produk dalam satu transaksi; setiap penjualan dicatat per produk.
+
+3. TIDAK ADA NOTIFIKASI REAL-TIME (PUSH/EMAIL)
+   Peringatan stok rendah hanya tampil di dashboard saat dibuka. Tidak ada
+   notifikasi email, WhatsApp, atau push notification otomatis ke pengelola.
+
+4. BELUM ADA FITUR MULTI-MATA UANG
+   Program hanya mendukung mata uang Rupiah (IDR). Tidak cocok untuk
+   bisnis yang beroperasi di lebih dari satu negara.
+
+5. LAPORAN TERBATAS
+   Saat ini laporan hanya mencakup penjualan dan stok. Belum ada laporan:
+   - Laba rugi bulanan/tahunan
+   - Laporan pembelian bahan baku (HPP)
+   - Analisis produk terlaris / terburuk per periode
+   - Laporan pertumbuhan per cabang (YoY / MoM)
+
+6. TIDAK ADA MANAJEMEN SUPPLIER / PEMBELIAN
+   Tidak ada fitur untuk mencatat pembelian bahan baku, data supplier,
+   atau perhitungan Harga Pokok Produksi (HPP) yang akurat.
+
+7. TIDAK ADA FITUR OFFLINE
+   Aplikasi sepenuhnya bergantung pada koneksi internet dan server cloud
+   (Supabase + Vercel). Jika internet mati, aplikasi tidak dapat digunakan.
+
+8. SKALABILITAS DATABASE TERBATAS (FREE TIER)
+   Jika menggunakan Supabase free tier, ada batasan koneksi dan penyimpanan.
+   Untuk skala besar, perlu upgrade ke paket berbayar.
+
+9. TIDAK ADA FITUR AUDIT LOG / RIWAYAT PERUBAHAN
+   Tidak ada catatan siapa yang mengubah data apa dan kapan. Jika ada
+   kesalahan input, sulit untuk melacak dan membatalkan perubahan.
+
+10. BELUM ADA FITUR BACKUP DATA MANUAL
+    Pengguna tidak dapat melakukan backup/export database secara mandiri
+    dari dalam aplikasi. Backup bergantung sepenuhnya pada Supabase.
+
+11. TIDAK ADA FITUR CUSTOMER MANAGEMENT (CRM)
+    Tidak ada pencatatan data pelanggan, program loyalitas, atau riwayat
+    pembelian per pelanggan.
+
+12. TAMPILAN LAPORAN HANYA DI EXCEL
+    Belum ada fitur cetak laporan ke PDF langsung dari aplikasi,
+    yang sering dibutuhkan untuk keperluan formal bisnis.
+
+13. TIDAK ADA MANAJEMEN KATEGORI PRODUK
+    Produk tidak dapat dikategorikan (misalnya: Roti Manis, Roti Tawar,
+    Kue, dll), sehingga sulit difilter saat daftar produk sudah banyak.
+
+14. BELUM ADA PENGUJIAN OTOMATIS (UNIT / INTEGRATION TEST)
+    Tidak ditemukan file test (Jest, Playwright, Cypress) dalam proyek.
+    Risiko bug meningkat seiring pengembangan fitur baru.
+
+================================================================================
+11. REKOMENDASI PENGEMBANGAN KE DEPAN
+================================================================================
+
+Jangka Pendek (1-3 bulan):
+  - Tambah notifikasi email/WhatsApp untuk stok rendah
+  - Fitur cetak PDF laporan langsung dari aplikasi
+  - Kategori produk untuk filter yang lebih baik
+  - Audit log sederhana (siapa mengubah apa)
+  - Unit test dasar dengan Jest/Vitest
+
+Jangka Menengah (3-6 bulan):
+  - Integrasi barcode/QR scanner untuk kasir
+  - Laporan laba rugi dan analisis produk terlaris
+  - Fitur multi-transaksi dalam satu sesi (keranjang belanja)
+  - Progressive Web App (PWA) untuk penggunaan offline dasar
+  - Manajemen supplier dan HPP
+
+Jangka Panjang (6-12 bulan):
+  - Mobile app (React Native / Flutter)
+  - Integrasi dengan marketplace (Tokopedia, Shopee)
+  - Fitur CRM (data pelanggan & loyalitas)
+  - Dashboard analitik lanjutan dengan AI/ML prediksi permintaan
+  - Modul akuntansi terintegrasi
+
+================================================================================
+12. INFORMASI TEKNIS TAMBAHAN
+================================================================================
+
+Algoritma Keamanan:
+  - Password: bcryptjs (salt rounds: 10 atau lebih)
+  - JWT Algorithm: HS256 (HMAC SHA-256)
+  - Cookie: HTTP-Only, SameSite: Lax, Secure (production)
+
+Batasan Data Dashboard:
+  - Grafik menampilkan data 30 hari terakhir
+  - Maksimal 1.000 data penjualan per query grafik
+  - Preview ekspor menampilkan 50 baris pertama
+
+Format Angka:
+  - Mata uang: Rupiah (IDR) format id-ID
+  - Zona waktu: Asia/Jakarta (WIB, UTC+7)
+  - Tanggal: format lokal Indonesia
+
+Cache & Performa:
+  - ISR (Incremental Static Regeneration): revalidate 60 detik
+  - Prisma ORM dengan connection pooling
+  - Agregasi data di level database (bukan di memory aplikasi)
+  - Select minimal (hanya field yang dibutuhkan)
+
+================================================================================
+                         AKHIR DOKUMENTASI
+           Family Bakery - Sistem Manajemen Stok WEB v0.1.0
+================================================================================

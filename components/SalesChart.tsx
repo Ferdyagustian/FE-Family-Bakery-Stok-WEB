@@ -7,7 +7,7 @@ import {
 } from 'recharts'
 import { Calendar, TrendingUp } from 'lucide-react'
 
-// 20 warna berbeda yang kontras dan menarik
+
 export const PRODUCT_COLORS = [
   '#9333ea', // purple
   '#f59e0b', // amber
@@ -200,7 +200,7 @@ export function SalesChart({
       {/* Chart */}
       <div className="h-[380px] w-full">
         {activeData.length > 0 ? (
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minHeight={380} minWidth={300}>
             <BarChart data={activeData} margin={{ top: 10, right: 10, left: 10, bottom: 20 }} barCategoryGap="30%">
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
               <XAxis

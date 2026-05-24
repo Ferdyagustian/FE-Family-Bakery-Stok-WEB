@@ -5,8 +5,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
@@ -71,4 +72,23 @@ model Sale {
   @@index([storeId])
   @@index([productId])
   @@index([storeId, saleDate])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  username   String?
+  action     String
+  entityType String
+  entityId   String?
+  entityName String?
+  detail     String?
+  storeId    String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([storeId])
+  @@index([createdAt])
+  @@index([entityType, entityId])
 }

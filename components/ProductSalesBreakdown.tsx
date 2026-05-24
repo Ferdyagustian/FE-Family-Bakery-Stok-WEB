@@ -156,9 +156,9 @@ export function ProductSalesBreakdown({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
           {/* Pie Chart */}
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center w-full">
             <p className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-3">Distribusi Pendapatan</p>
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={260} minHeight={260} minWidth={250}>
               <PieChart>
                 <Pie
                   data={productData}

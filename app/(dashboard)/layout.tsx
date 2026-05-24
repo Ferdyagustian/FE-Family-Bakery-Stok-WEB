@@ -4,7 +4,9 @@ import { Suspense } from 'react'
 
 // Komponen async terpisah — tidak blocking shell render
 async function LowStockLoader({ children, user }: { children: (data: any[]) => React.ReactNode, user: any }) {
-  const whereClause: any = { stockQuantity: { lt: 7 } }
+  const threshold = parseInt(process.env.LOW_STOCK_THRESHOLD || '4')
+  const whereClause: any = { stockQuantity: { lte: threshold } }
+  
   if (user?.role === 'MANAGER' && user?.storeId) {
     whereClause.storeId = user.storeId
   }

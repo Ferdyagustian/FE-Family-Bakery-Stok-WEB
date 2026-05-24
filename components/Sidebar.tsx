@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Store as StoreIcon, FileSpreadsheet, LogOut, X } from 'lucide-react'
+import { LayoutDashboard, Store as StoreIcon, FileSpreadsheet, LogOut, X, ClipboardList } from 'lucide-react'
 import { logoutAction } from '@/lib/actions/auth'
 
 interface SidebarProps {
@@ -15,6 +15,10 @@ const navLinks = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/stores', label: 'Manajemen Cabang', icon: StoreIcon },
   { href: '/reports', label: 'Laporan', icon: FileSpreadsheet },
+]
+
+const adminOnlyLinks = [
+  { href: '/audit', label: 'Riwayat Aktivitas', icon: ClipboardList },
 ]
 
 export function Sidebar({ onClose, showCloseButton, user }: SidebarProps) {
@@ -79,7 +83,38 @@ export function Sidebar({ onClose, showCloseButton, user }: SidebarProps) {
             </Link>
           )
         })}
+
+        {/* Khusus ADMIN: Riwayat Aktivitas */}
+        {user?.role === 'ADMIN' && (
+          <>
+            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-4 pt-4 pb-2">
+              Admin
+            </p>
+            {adminOnlyLinks.map(({ href, label, icon: Icon }) => {
+              const active = isActive(href)
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={onClose}
+                  className={`flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-150 ${
+                    active
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-indigo-900/30'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:text-indigo-700 dark:hover:text-indigo-400'
+                  }`}
+                >
+                  <Icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-white' : ''}`} />
+                  <span>{label}</span>
+                  {active && (
+                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white opacity-80" />
+                  )}
+                </Link>
+              )
+            })}
+          </>
+        )}
       </nav>
+
 
       {/* Footer: Logout */}
       <div className="p-4 border-t border-gray-100 dark:border-gray-800">

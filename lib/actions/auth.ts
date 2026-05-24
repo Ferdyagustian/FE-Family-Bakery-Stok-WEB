@@ -1,9 +1,10 @@
 'use server'
 
 import prisma from '@/lib/db'
-import { createSession, deleteSession } from '@/lib/session'
+import { createSession, deleteSession, getSession } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import bcrypt from 'bcryptjs'
+import { writeAuditLog } from '@/lib/audit'
 
 export async function loginAction(formData: FormData) {
   const username = formData.get('username') as string
@@ -31,6 +32,16 @@ export async function loginAction(formData: FormData) {
       role: user.role,
       storeId: user.storeId,
     })
+
+    // Catat aktivitas login
+    await writeAuditLog({
+      userId: user.id,
+      username: user.username,
+      action: 'LOGIN',
+      entityType: 'User',
+      entityId: user.id,
+      entityName: user.name ?? user.username,
+    })
   } catch (error: any) {
     if (error?.digest?.startsWith('NEXT_REDIRECT')) throw error
     console.error('Login error:', error)
@@ -41,6 +52,19 @@ export async function loginAction(formData: FormData) {
 }
 
 export async function logoutAction() {
+  const session = await getSession()
+
+  // Catat aktivitas logout sebelum sesi dihapus
+  if (session?.user) {
+    await writeAuditLog({
+      userId: session.user.id,
+      username: session.user.username,
+      action: 'LOGOUT',
+      entityType: 'User',
+      entityId: session.user.id,
+    })
+  }
+
   await deleteSession()
   redirect('/login')
 }
