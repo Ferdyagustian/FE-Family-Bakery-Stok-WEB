@@ -85,17 +85,8 @@ export async function deleteStore(id: string) {
       select: { name: true }
     })
 
-    await prisma.$transaction(async (tx) => {
-      const products = await tx.product.findMany({ where: { storeId: id } })
-      const productIds = products.map((p: any) => p.id)
-
-      if (productIds.length > 0) {
-        await tx.sale.deleteMany({ where: { productId: { in: productIds } } })
-        await tx.product.deleteMany({ where: { storeId: id } })
-      }
-
-      await tx.store.delete({ where: { id } })
-    })
+    // Prisma will cascade delete StoreProduct and Sale due to schema definitions
+    await prisma.store.delete({ where: { id } })
 
     await writeAuditLog({
       userId: user.id,

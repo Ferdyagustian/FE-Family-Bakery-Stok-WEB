@@ -10,11 +10,22 @@ export default async function RestockPage({ params }: { params: Promise<{ id: st
   const store = await prisma.store.findUnique({
     where: { id: storeId },
     include: {
-      products: { orderBy: [{ stockQuantity: 'asc' }, { name: 'asc' }] }
+      storeProducts: {
+        include: { product: true },
+        orderBy: { stockQuantity: 'asc' }
+      }
     }
   })
 
   if (!store) notFound()
+
+  const storeProductsList = store.storeProducts.map(sp => ({
+    ...sp.product,
+    stockQuantity: sp.stockQuantity,
+  })).sort((a, b) => {
+    if (a.stockQuantity === b.stockQuantity) return a.name.localeCompare(b.name)
+    return 0
+  })
 
   return (
     <div className="space-y-5">
@@ -49,7 +60,7 @@ export default async function RestockPage({ params }: { params: Promise<{ id: st
       </div>
 
       {/* Restock Form */}
-      {store.products.length === 0 ? (
+      {storeProductsList.length === 0 ? (
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm p-12 text-center text-gray-400 dark:text-gray-500">
           <Store className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p className="font-semibold text-gray-600 dark:text-gray-300">Belum ada produk di cabang ini</p>
@@ -63,7 +74,7 @@ export default async function RestockPage({ params }: { params: Promise<{ id: st
         </div>
       ) : (
         <RestockForm
-          products={store.products.map((p: any) => ({
+          products={storeProductsList.map((p: any) => ({
             id: p.id,
             name: p.name,
             imageUrl: p.imageUrl,

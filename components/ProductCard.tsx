@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useOptimistic, useTransition } from 'react'
+import { useState } from 'react'
 import { deleteProduct } from '@/lib/actions/product'
 import { EditProductModal } from '@/components/EditProductModal'
 import { Trash2, Package, Tag, ShoppingCart, Minus, Plus, AlertTriangle, X, Percent, CheckCircle2 } from 'lucide-react'
@@ -111,7 +111,6 @@ export function ProductCard({
   onAddToCart?: (product: any, qty: number) => void,
   cartQty?: number
 }) {
-  const [isPending, startTransition] = useTransition()
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [saleQty, setSaleQty] = useState<number | ''>(1)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -166,9 +165,7 @@ export function ProductCard({
         />
       )}
 
-      <div className={`bg-white dark:bg-gray-900 rounded-xl border flex ${viewMode === 'list' ? 'flex-col sm:flex-row items-center p-3 gap-4' : 'flex-col h-full'} overflow-hidden group hover:border-gray-300 dark:hover:border-gray-700 transition-colors duration-150 ${
-        isPending ? 'border-green-400 dark:border-green-600' : 'border-gray-200 dark:border-gray-800 shadow-sm'
-      }`}>
+      <div className={`bg-white dark:bg-gray-900 rounded-xl border flex ${viewMode === 'list' ? 'flex-col sm:flex-row items-center p-3 gap-4' : 'flex-col h-full'} overflow-hidden group hover:border-gray-300 dark:hover:border-gray-700 transition-colors duration-150 border-gray-200 dark:border-gray-800 shadow-sm`}>
         {/* Product Image */}
         {viewMode === 'grid' && (
           product.imageUrl ? (
@@ -278,7 +275,7 @@ export function ProductCard({
             <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden h-11 bg-gray-50 dark:bg-gray-800/50">
               <button
                 onClick={() => adjustQty(-1)}
-                disabled={typeof saleQty !== 'number' || saleQty <= 1 || isPending || isOutOfStock}
+                disabled={typeof saleQty !== 'number' || saleQty <= 1 || isOutOfStock}
                 className="w-11 h-full flex items-center justify-center text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 transition-colors duration-150"
               >
                 <Minus className="w-4 h-4" />
@@ -298,12 +295,12 @@ export function ProductCard({
                 onBlur={() => {
                   if (saleQty === '' || saleQty < 1) setSaleQty(1)
                 }}
-                disabled={isPending || isOutOfStock}
+                disabled={isOutOfStock}
                 className="w-10 h-full text-center text-base font-bold text-gray-900 dark:text-gray-100 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white dark:focus:bg-gray-900 p-0 transition-all"
               />
               <button
                 onClick={() => adjustQty(1)}
-                disabled={typeof saleQty === 'number' && saleQty >= availableStock || isPending || isOutOfStock}
+                disabled={typeof saleQty === 'number' && saleQty >= availableStock || isOutOfStock}
                 className="w-11 h-full flex items-center justify-center text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 transition-colors duration-150"
               >
                 <Plus className="w-4 h-4" />
@@ -312,12 +309,10 @@ export function ProductCard({
 
             <button
               onClick={handleSale}
-              disabled={isPending || isOutOfStock}
+              disabled={isOutOfStock}
               className={`flex-1 flex items-center justify-center gap-2 text-white text-sm font-bold h-11 rounded-xl transition-colors duration-150 outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:focus:ring-offset-gray-900 ${
                 saleSuccess
                   ? 'bg-emerald-500'
-                  : isPending
-                  ? 'bg-green-500 opacity-80'
                   : isOutOfStock
                   ? 'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                   : 'bg-green-600 hover:bg-green-700 active:bg-green-800'
@@ -325,8 +320,6 @@ export function ProductCard({
             >
               {saleSuccess ? (
                 <><CheckCircle2 className="w-3.5 h-3.5" /> Ditambah</>
-              ) : isPending ? (
-                <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" /> ...</>
               ) : isOutOfStock ? (
                 'Stok Habis'
               ) : (

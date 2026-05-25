@@ -60,40 +60,43 @@ async function main() {
     return
   }
 
-  let totalInserted = 0
-  let totalSkipped = 0
+  let totalProducts = 0
+  let totalLinks = 0
 
-  for (const store of stores) {
-    console.log(`\nMemproses cabang: ${store.name} (${store.id})`)
-    
-    // Ambil semua nama produk yang sudah ada di cabang ini agar tidak duplikat
-    const existingProducts = await prisma.product.findMany({
-      where: { storeId: store.id },
-      select: { name: true }
-    })
-    const existingNames = new Set(existingProducts.map(p => p.name.toLowerCase().trim()))
+  for (const menu of menus) {
+    // Upsert the master product
+    let product = await prisma.product.findFirst({ where: { name: menu.name } })
+    if (!product) {
+       product = await prisma.product.create({
+         data: {
+           name: menu.name,
+           price: menu.price,
+           description: `Kategori: ${menu.desc}`,
+           discount: 0,
+         }
+       })
+       totalProducts++
+    }
 
-    for (const menu of menus) {
-      if (existingNames.has(menu.name.toLowerCase().trim())) {
-        totalSkipped++
-        continue
-      }
-
-      await prisma.product.create({
-        data: {
-          storeId: store.id,
-          name: menu.name,
-          price: menu.price,
-          description: `Kategori: ${menu.desc}`,
-          stockQuantity: 0,
-          discount: 0,
-        }
+    // Link it to all stores
+    for (const store of stores) {
+      const existingLink = await prisma.storeProduct.findUnique({
+         where: { storeId_productId: { storeId: store.id, productId: product.id } }
       })
-      totalInserted++
+      if (!existingLink) {
+         await prisma.storeProduct.create({
+           data: {
+             storeId: store.id,
+             productId: product.id,
+             stockQuantity: 10 // Beri stok awal dummy
+           }
+         })
+         totalLinks++
+      }
     }
   }
 
-  console.log(`\nSelesai! Berhasil menambahkan ${totalInserted} produk baru. Melewati ${totalSkipped} produk yang sudah ada.`)
+  console.log(`\nSelesai! Berhasil menambahkan ${totalProducts} produk master baru dan ${totalLinks} tautan StoreProduct.`)
 }
 
 main()

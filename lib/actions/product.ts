@@ -5,40 +5,35 @@ import { revalidatePath } from 'next/cache'
 import { getSession } from '@/lib/session'
 import { writeAuditLog } from '@/lib/audit'
 
-// Helper: ambil info user dari session
 async function getSessionUser() {
   const session = await getSession()
   return session?.user ?? null
 }
 
-// ─────────────────────────────────────────────
-// CREATE PRODUCT
-// ─────────────────────────────────────────────
-export async function createProduct(formData: FormData) {
+export async function createMasterProduct(formData: FormData) {
   const user = await getSessionUser()
-  if (!user) return { error: 'Unauthorized' }
+  if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' }
 
-  const storeId = formData.get('storeId') as string
   const name = (formData.get('name') as string)?.trim()
   const description = (formData.get('description') as string)?.trim() || null
   const imageUrl = (formData.get('imageUrl') as string)?.trim() || null
   const price = parseFloat(formData.get('price') as string)
-  const stockQuantity = parseInt(formData.get('stockQuantity') as string)
 
-  if (
-    !storeId ||
-    !name ||
-    isNaN(price) ||
-    price <= 0 ||
-    isNaN(stockQuantity) ||
-    stockQuantity < 0
-  ) {
+  if (!name || isNaN(price) || price <= 0) {
     return { error: 'Data tidak lengkap atau tidak valid' }
   }
 
   try {
+    const existing = await prisma.product.findFirst({
+      where: { name: { equals: name, mode: 'insensitive' } }
+    })
+
+    if (existing) {
+      return { error: 'Produk dengan nama ini sudah ada di Master Katalog' }
+    }
+
     const product = await prisma.product.create({
-      data: { storeId, name, description, imageUrl, price, stockQuantity }
+      data: { name, description, imageUrl, price }
     })
 
     await writeAuditLog({
@@ -48,20 +43,66 @@ export async function createProduct(formData: FormData) {
       entityType: 'Product',
       entityId: product.id,
       entityName: name,
+      detail: { price },
+    })
+
+    revalidatePath('/products')
+    return { success: true, product }
+  } catch (error) {
+    console.error(error)
+    return { error: 'Gagal menambah produk master' }
+  }
+}
+
+export async function addStoreProduct(formData: FormData) {
+  const user = await getSessionUser()
+  if (!user) return { error: 'Unauthorized' }
+
+  const storeId = formData.get('storeId') as string
+  const productId = formData.get('productId') as string
+  const stockQuantity = parseInt(formData.get('stockQuantity') as string)
+
+  if (!storeId || !productId || isNaN(stockQuantity) || stockQuantity < 0) {
+    return { error: 'Data tidak lengkap atau tidak valid' }
+  }
+
+  try {
+    const product = await prisma.product.findUnique({ where: { id: productId } })
+    if (!product) return { error: 'Produk Master tidak ditemukan' }
+
+    await prisma.storeProduct.upsert({
+      where: {
+        storeId_productId: { storeId, productId }
+      },
+      update: {
+        stockQuantity: { increment: stockQuantity }
+      },
+      create: {
+        storeId,
+        productId,
+        stockQuantity
+      }
+    })
+
+    await writeAuditLog({
+      userId: user.id,
+      username: user.username,
+      action: 'RESTOCK_PRODUCT', // Or you could use a new action type like ADD_STORE_PRODUCT
+      entityType: 'StoreProduct',
+      entityId: productId,
+      entityName: product.name,
       storeId,
-      detail: { price, stockQuantity },
+      detail: { stockAdded: stockQuantity },
     })
 
     revalidatePath(`/stores/${storeId}`)
     return { success: true, product }
   } catch (error) {
-    return { error: 'Gagal menambah produk' }
+    console.error(error)
+    return { error: 'Gagal menambah produk ke cabang' }
   }
 }
 
-// ─────────────────────────────────────────────
-// UPDATE PRODUCT
-// ─────────────────────────────────────────────
 export async function updateProduct(formData: FormData) {
   const user = await getSessionUser()
   if (!user) return { error: 'Unauthorized' }
@@ -77,7 +118,6 @@ export async function updateProduct(formData: FormData) {
   if (!productId || !storeId || !name || isNaN(price) || price <= 0) {
     return { error: 'Data tidak lengkap atau tidak valid' }
   }
-
   if (discount < 0 || discount > 100) {
     return { error: 'Diskon harus antara 0 dan 100 persen' }
   }
@@ -102,19 +142,11 @@ export async function updateProduct(formData: FormData) {
     revalidatePath(`/stores/${storeId}`)
     return { success: true }
   } catch (error: any) {
-    console.error('updateProduct error:', error)
     return { error: error?.message || 'Gagal memperbarui produk' }
   }
 }
 
-// ─────────────────────────────────────────────
-// RECORD SALE
-// ─────────────────────────────────────────────
-export async function recordSale(
-  productId: string,
-  storeId: string,
-  quantity: number
-) {
+export async function recordSale(productId: string, storeId: string, quantity: number) {
   const user = await getSessionUser()
   if (!user) return { error: 'Unauthorized' }
 
@@ -130,18 +162,18 @@ export async function recordSale(
       const product = await tx.product.findUnique({
         where: { id: productId }
       })
-
       if (!product) throw new Error('PRODUCT_NOT_FOUND')
-
+      
       productName = product.name
       const discountPct = (product as any).discount || 0
       const effectivePrice = product.price * (1 - discountPct / 100)
       totalAmount = effectivePrice * quantity
       const profitAmount = totalAmount
 
-      const updated = await tx.product.updateMany({
+      const updated = await tx.storeProduct.updateMany({
         where: {
-          id: productId,
+          productId,
+          storeId,
           stockQuantity: { gte: quantity }
         },
         data: { stockQuantity: { decrement: quantity } }
@@ -176,40 +208,32 @@ export async function recordSale(
     revalidatePath(`/stores/${storeId}`)
     return { success: true }
   } catch (error: any) {
-    if (error?.message === 'PRODUCT_NOT_FOUND') {
-      return { error: 'Produk tidak ditemukan' }
-    }
-    if (error?.message === 'INSUFFICIENT_STOCK') {
-      return { error: 'Stok tidak cukup atau sudah habis terjual' }
-    }
+    if (error?.message === 'PRODUCT_NOT_FOUND') return { error: 'Produk tidak ditemukan' }
+    if (error?.message === 'INSUFFICIENT_STOCK') return { error: 'Stok tidak cukup atau sudah habis terjual' }
     return { error: 'Gagal mencatat penjualan' }
   }
 }
 
-// ─────────────────────────────────────────────
-// DELETE PRODUCT
-// ─────────────────────────────────────────────
 export async function deleteProduct(productId: string, storeId: string) {
   const user = await getSessionUser()
   if (!user) return { error: 'Unauthorized' }
 
   try {
-    // Ambil nama produk sebelum dihapus untuk dicatat di log
     const product = await prisma.product.findUnique({
       where: { id: productId },
       select: { name: true }
     })
 
-    await prisma.$transaction([
-      prisma.sale.deleteMany({ where: { productId } }),
-      prisma.product.delete({ where: { id: productId } })
-    ])
+    // Hanya hapus dari StoreProduct (Cabang), bukan Master
+    await prisma.storeProduct.deleteMany({
+      where: { productId, storeId }
+    })
 
     await writeAuditLog({
       userId: user.id,
       username: user.username,
       action: 'DELETE_PRODUCT',
-      entityType: 'Product',
+      entityType: 'StoreProduct',
       entityId: productId,
       entityName: product?.name ?? productId,
       storeId,
@@ -218,13 +242,10 @@ export async function deleteProduct(productId: string, storeId: string) {
     revalidatePath(`/stores/${storeId}`)
     return { success: true }
   } catch (error) {
-    return { error: 'Gagal menghapus produk' }
+    return { error: 'Gagal menghapus produk dari toko' }
   }
 }
 
-// ─────────────────────────────────────────────
-// BULK RESTOCK
-// ─────────────────────────────────────────────
 export async function bulkRestockProducts(
   restocks: { productId: string; qty: number; name?: string }[],
   storeId: string
@@ -232,19 +253,14 @@ export async function bulkRestockProducts(
   const user = await getSessionUser()
   if (!user) return { error: 'Unauthorized' }
 
-  const validRestocks = restocks.filter(
-    (r) => Number.isInteger(r.qty) && r.qty > 0
-  )
-
-  if (validRestocks.length === 0) {
-    return { error: 'Tidak ada produk yang diisi jumlah restoknya' }
-  }
+  const validRestocks = restocks.filter((r) => Number.isInteger(r.qty) && r.qty > 0)
+  if (validRestocks.length === 0) return { error: 'Tidak ada produk yang diisi jumlah restoknya' }
 
   try {
     await prisma.$transaction(
       validRestocks.map((r) =>
-        prisma.product.update({
-          where: { id: r.productId },
+        prisma.storeProduct.updateMany({
+          where: { productId: r.productId, storeId },
           data: { stockQuantity: { increment: r.qty } }
         })
       )
@@ -254,11 +270,9 @@ export async function bulkRestockProducts(
       userId: user.id,
       username: user.username,
       action: 'RESTOCK_PRODUCT',
-      entityType: 'Product',
+      entityType: 'StoreProduct',
       storeId,
-      detail: {
-        items: validRestocks.map(r => ({ productId: r.productId, name: r.name, qty: r.qty }))
-      },
+      detail: { items: validRestocks.map(r => ({ productId: r.productId, name: r.name, qty: r.qty })) },
     })
 
     revalidatePath(`/stores/${storeId}`)
@@ -269,9 +283,6 @@ export async function bulkRestockProducts(
   }
 }
 
-// ─────────────────────────────────────────────
-// BULK SALES (POS CART CHECKOUT)
-// ─────────────────────────────────────────────
 export async function recordBulkSales(
   items: { productId: string; quantity: number }[],
   storeId: string
@@ -279,13 +290,8 @@ export async function recordBulkSales(
   const user = await getSessionUser()
   if (!user) return { error: 'Unauthorized' }
 
-  const validItems = items.filter(
-    (item) => item.productId && Number.isInteger(item.quantity) && item.quantity > 0
-  )
-
-  if (validItems.length === 0) {
-    return { error: 'Keranjang kosong atau data tidak valid' }
-  }
+  const validItems = items.filter((item) => item.productId && Number.isInteger(item.quantity) && item.quantity > 0)
+  if (validItems.length === 0) return { error: 'Keranjang kosong atau data tidak valid' }
 
   try {
     let totalAll = 0
@@ -306,17 +312,16 @@ export async function recordBulkSales(
         totalAll += totalAmount
         soldItems.push({ name: product.name, qty: item.quantity })
 
-        const updated = await tx.product.updateMany({
+        const updated = await tx.storeProduct.updateMany({
           where: {
-            id: item.productId,
+            productId: item.productId,
+            storeId,
             stockQuantity: { gte: item.quantity }
           },
           data: { stockQuantity: { decrement: item.quantity } }
         })
 
-        if (updated.count === 0) {
-          throw new Error(`INSUFFICIENT_STOCK:${product.name}`)
-        }
+        if (updated.count === 0) throw new Error(`INSUFFICIENT_STOCK:${product.name}`)
 
         await tx.sale.create({
           data: {
@@ -342,9 +347,7 @@ export async function recordBulkSales(
     revalidatePath(`/stores/${storeId}`)
     return { success: true }
   } catch (error: any) {
-    if (error?.message?.startsWith('PRODUCT_NOT_FOUND')) {
-      return { error: 'Ada produk yang tidak ditemukan di database' }
-    }
+    if (error?.message?.startsWith('PRODUCT_NOT_FOUND')) return { error: 'Ada produk yang tidak ditemukan di database' }
     if (error?.message?.startsWith('INSUFFICIENT_STOCK')) {
       const productName = error.message.split(':')[1]
       return { error: `Stok tidak cukup untuk produk: ${productName}` }

@@ -31,29 +31,40 @@ model User {
 model Store {
   id        String    @id @default(cuid())
   name      String
-  location  String?
-  products  Product[]
-  sales     Sale[]
+  location      String?
+  storeProducts StoreProduct[]
+  sales         Sale[]
   users     User[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
 
 model Product {
-  id            String   @id @default(cuid())
-  storeId       String
+  id            String         @id @default(cuid())
   name          String
   description   String?
   imageUrl      String?
   price         Float
-  discount      Int      @default(0)
+  discount      Int            @default(0)
+  sales         Sale[]
+  storeProducts StoreProduct[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model StoreProduct {
+  id            String   @id @default(cuid())
+  storeId       String
+  productId     String
   stockQuantity Int      @default(0)
   store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  sales         Sale[]
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  @@unique([storeId, productId])
   @@index([storeId])
+  @@index([productId])
   @@index([stockQuantity])
 }
 

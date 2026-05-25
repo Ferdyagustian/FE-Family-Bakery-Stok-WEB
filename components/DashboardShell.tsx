@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Sidebar } from '@/components/Sidebar'
 import { LowStockAlert } from '@/components/LowStockAlert'
 import { ThemeToggle } from '@/components/ThemeToggle'
-import { Menu, Store } from 'lucide-react'
+import { Menu } from 'lucide-react'
 
 type LowStockProduct = {
   id: string

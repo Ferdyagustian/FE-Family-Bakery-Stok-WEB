@@ -1,8 +1,8 @@
+import React, { Suspense } from 'react'
 import prisma from '@/lib/db'
 import { SalesChart } from '@/components/SalesChart'
 import { ProductSalesBreakdown } from '@/components/ProductSalesBreakdown'
 import { Store, Package, TrendingUp, CircleDollarSign, Boxes } from 'lucide-react'
-import { Suspense } from 'react'
 
 // Bukan force-dynamic agar bisa di-cache, tapi revalidate tiap 60 detik
 export const revalidate = 60
@@ -23,7 +23,7 @@ async function DashboardData() {
     }),
 
     // Hitung total fisik barang di seluruh cabang
-    prisma.product.aggregate({
+    prisma.storeProduct.aggregate({
       _sum: { stockQuantity: true }
     }),
 

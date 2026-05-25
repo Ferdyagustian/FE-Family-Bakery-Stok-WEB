@@ -11,22 +11,22 @@ async function LowStockLoader({ children, user }: { children: (data: any[]) => R
     whereClause.storeId = user.storeId
   }
 
-  const lowStockProducts = await prisma.product.findMany({
+  const lowStockProducts = await prisma.storeProduct.findMany({
     where: whereClause,
     select: {
-      id: true,
-      name: true,
+      productId: true,
       stockQuantity: true,
       storeId: true,
       store: { select: { name: true } },
+      product: { select: { name: true } },
     },
     orderBy: { stockQuantity: 'asc' },
     take: 20, // Batasi maksimal 20 item
   })
 
   const lowStockData = lowStockProducts.map((p: any) => ({
-    id: p.id,
-    name: p.name,
+    id: p.productId,
+    name: p.product.name,
     stockQuantity: p.stockQuantity,
     storeId: p.storeId,
     storeName: p.store.name,

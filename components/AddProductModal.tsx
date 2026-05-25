@@ -1,47 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { createProduct } from '@/lib/actions/product'
+import { addStoreProduct } from '@/lib/actions/product'
 import { useRouter } from 'next/navigation'
-import { X, Upload, ImageIcon } from 'lucide-react'
+import { X, Package } from 'lucide-react'
 
-export function AddProductModal({ storeId }: { storeId: string }) {
+export function AddProductModal({ storeId, masterProducts = [] }: { storeId: string, masterProducts?: any[] }) {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [imageUrl, setImageUrl] = useState('')
-  const [imagePreview, setImagePreview] = useState('')
-  const [uploading, setUploading] = useState(false)
   const router = useRouter()
 
   const handleClose = () => {
     setIsOpen(false)
-    setImageUrl('')
-    setImagePreview('')
-  }
-
-  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!e.target.files || e.target.files.length === 0) return
-    const file = e.target.files[0]
-    setImagePreview(URL.createObjectURL(file))
-
-    setUploading(true)
-    const formData = new FormData()
-    formData.append('file', file)
-    try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData })
-      const data = await res.json()
-      if (data.success) {
-        setImageUrl(data.url)
-      } else {
-        alert('Gagal mengupload gambar')
-        setImagePreview('')
-      }
-    } catch {
-      alert('Terjadi kesalahan saat upload')
-      setImagePreview('')
-    } finally {
-      setUploading(false)
-    }
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -49,9 +19,8 @@ export function AddProductModal({ storeId }: { storeId: string }) {
     setLoading(true)
     const formData = new FormData(e.currentTarget)
     formData.append('storeId', storeId)
-    formData.append('imageUrl', imageUrl)
 
-    const res = await createProduct(formData)
+    const res = await addStoreProduct(formData)
     setLoading(false)
     if (res?.error) {
       alert(res.error)
@@ -80,91 +49,47 @@ export function AddProductModal({ storeId }: { storeId: string }) {
 
             {/* Modal Body */}
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
-              {/* Product Name */}
+              {/* Product Selection */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">
-                  Nama Produk <span className="text-red-500">*</span>
+                  Pilih Produk <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Package className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <select 
+                    name="productId" 
+                    required 
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-transparent text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none"
+                    defaultValue=""
+                  >
+                    <option value="" disabled className="text-gray-500">-- Pilih Produk dari Katalog --</option>
+                    {masterProducts.map((p) => (
+                      <option key={p.id} value={p.id} className="text-gray-900 dark:text-gray-100 dark:bg-gray-800">
+                        {p.name} - Rp {p.price.toLocaleString('id-ID')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  Produk baru hanya dapat ditambahkan oleh Admin melalui Master Katalog.
+                </p>
+              </div>
+
+              {/* Initial Stock */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">
+                  Stok Awal <span className="text-red-500">*</span>
                 </label>
                 <input 
-                  name="name" 
+                  name="stockQuantity" 
+                  type="number" 
+                  min="0" 
                   required 
+                  defaultValue="0"
                   className="flex h-11 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 dark:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="Misal: Roti Sisir, Croissant, Donat" 
                 />
-              </div>
-
-              {/* Price + Stock */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">
-                    Harga (Rp) <span className="text-red-500">*</span>
-                  </label>
-                  <input 
-                    name="price" 
-                    type="number" 
-                    min="0" 
-                    required 
-                    className="flex h-11 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 dark:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="15000" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">
-                    Stok Awal <span className="text-red-500">*</span>
-                  </label>
-                  <input 
-                    name="stockQuantity" 
-                    type="number" 
-                    min="0" 
-                    required 
-                    defaultValue="0"
-                    className="flex h-11 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 dark:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Deskripsi</label>
-                <textarea 
-                  name="description" 
-                  rows={2}
-                  className="flex w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 dark:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
-                  placeholder="Deskripsi singkat produk (opsional)..." 
-                />
-              </div>
-
-              {/* Image Upload */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Foto Produk</label>
-                <label className="relative flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl cursor-pointer hover:border-primary-400 hover:bg-primary-50 dark:bg-primary-950/20/30 transition-colors overflow-hidden">
-                  {imagePreview ? (
-                    <img src={imagePreview} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
-                  ) : (
-                    <div className="flex flex-col items-center text-gray-400 dark:text-gray-500 p-4 text-center">
-                      <ImageIcon className="w-8 h-8 mb-2" />
-                      <p className="text-sm font-medium">{uploading ? 'Mengupload...' : 'Klik untuk upload foto'}</p>
-                      <p className="text-xs mt-1">PNG, JPG, WebP (max 5MB)</p>
-                    </div>
-                  )}
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    className="sr-only" 
-                    onChange={handleImageUpload} 
-                    disabled={uploading} 
-                  />
-                  {uploading && (
-                    <div className="absolute inset-0 bg-white dark:bg-gray-900/70 flex items-center justify-center">
-                      <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
-                    </div>
-                  )}
-                </label>
-                {imagePreview && (
-                  <button type="button" onClick={() => { setImageUrl(''); setImagePreview('') }} className="mt-1.5 text-xs text-red-500 hover:underline">
-                    Hapus foto
-                  </button>
-                )}
               </div>
 
               {/* Actions */}
@@ -172,8 +97,8 @@ export function AddProductModal({ storeId }: { storeId: string }) {
                 <button type="button" onClick={handleClose} className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-semibold text-sm hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-800 transition-colors" disabled={loading}>
                   Batal
                 </button>
-                <button type="submit" disabled={loading || uploading} className="flex-1 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm transition-colors disabled:opacity-60">
-                  {loading ? 'Menyimpan...' : 'Simpan Produk'}
+                <button type="submit" disabled={loading} className="flex-1 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm transition-colors disabled:opacity-60">
+                  {loading ? 'Menambahkan...' : 'Tambahkan ke Cabang'}
                 </button>
               </div>
             </form>

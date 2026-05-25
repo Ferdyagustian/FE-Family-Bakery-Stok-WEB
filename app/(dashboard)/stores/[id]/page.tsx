@@ -16,9 +16,16 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
   const store = await prisma.store.findUnique({
     where: { id: storeId },
     include: {
-      products: { orderBy: { createdAt: 'desc' } },
+      storeProducts: {
+        include: { product: true },
+        orderBy: { createdAt: 'desc' }
+      },
       users: { select: { id: true, name: true, username: true } },
     }
+  })
+
+  const masterProducts = await prisma.product.findMany({
+    orderBy: { name: 'asc' }
   })
 
   const session = await getSession()
@@ -26,13 +33,19 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
 
   if (!store) notFound()
 
+  // Mapped back to product format for the UI components
+  const storeProductsList = store.storeProducts.map(sp => ({
+    ...sp.product,
+    stockQuantity: sp.stockQuantity,
+  }))
+
   return (
     <div className="space-y-5">
       {/* Breadcrumb + Title */}
       <div className="flex items-center gap-3 flex-wrap">
-        <Link 
-          href="/stores" 
-          className="p-2 bg-white dark:bg-gray-900 rounded-full border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-800 text-gray-500 dark:text-gray-400 shadow-sm transition-colors flex-shrink-0"
+        <Link
+          href="/stores"
+          className="p-2 bg-white dark:bg-gray-900 rounded-full border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 shadow-sm transition-colors flex-shrink-0"
         >
           <ChevronLeft className="w-5 h-5" />
         </Link>
@@ -53,9 +66,9 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100">
-              Daftar Produk 
+              Daftar Produk
               <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-semibold bg-primary-100 text-primary-700">
-                {store.products.length}
+                {storeProductsList.length}
               </span>
             </h2>
             <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Kelola stok dan catat penjualan produk di cabang ini</p>
@@ -68,13 +81,13 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
               <RefreshCw className="w-4 h-4" />
               Restok Barang
             </Link>
-            <AddProductModal storeId={storeId} />
+            <AddProductModal storeId={storeId} masterProducts={masterProducts} />
           </div>
         </div>
       </div>
 
       {/* Product Search & Grid */}
-      <ProductSearchList products={store.products} storeId={storeId} />
+      <ProductSearchList products={storeProductsList} storeId={storeId} />
     </div>
   )
 }

@@ -68,26 +68,26 @@ export async function GET(request: NextRequest) {
 
     // ── Export: Stok Produk ──────────────────────
     if (type === "stock") {
-      const products = await prisma.product.findMany({
+      const products = await prisma.storeProduct.findMany({
         where: storeId ? { storeId } : {},
-        include: {
-          store: { select: { name: true } },
-        },
-        orderBy: [{ store: { name: "asc" } }, { name: "asc" }],
+        include: { product: true, store: true },
+        orderBy: [{ store: { name: 'asc' } }, { product: { name: 'asc' } }],
       });
 
-      const rows = products.map((p: any, i: number) => ({
-        no: i + 1,
-        cabang: p.store.name,
-        produk: p.name,
-        harga: p.price,
-        stok: p.stockQuantity,
-        status:
+      const rows = products.map((p, i) => ({
+        "No.": i + 1,
+        Cabang: p.store.name,
+        Produk: p.product.name,
+        Deskripsi: p.product.description || "-",
+        Harga: `Rp ${p.product.price.toLocaleString("id-ID")}`,
+        "Diskon (%)": p.product.discount,
+        Stok: p.stockQuantity,
+        Status:
           p.stockQuantity === 0
             ? "Habis"
             : p.stockQuantity < 10
-            ? "Hampir Habis"
-            : "Tersedia",
+            ? "Menipis"
+            : "Aman",
       }));
 
       return NextResponse.json({ data: rows });

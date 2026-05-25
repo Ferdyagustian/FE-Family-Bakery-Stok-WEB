@@ -18,11 +18,20 @@ export async function GET(request: Request) {
   }
 
   // 2. Ambil produk yang stoknya <= THRESHOLD
-  const lowStockProducts = await prisma.product.findMany({
+  const lowStockStoreProducts = await prisma.storeProduct.findMany({
     where: { stockQuantity: { lte: THRESHOLD } },
-    include: { store: { select: { name: true } } },
+    include: { 
+      store: { select: { name: true } },
+      product: { select: { name: true } }
+    },
     orderBy: { stockQuantity: 'asc' },
   })
+  
+  const lowStockProducts = lowStockStoreProducts.map(sp => ({
+    name: sp.product.name,
+    stockQuantity: sp.stockQuantity,
+    store: sp.store
+  }))
 
   if (lowStockProducts.length === 0) {
     return NextResponse.json({ message: 'Semua stok aman, tidak ada notifikasi yang dikirim.' })

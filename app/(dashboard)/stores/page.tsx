@@ -10,7 +10,7 @@ export default async function StoresPage() {
     orderBy: { createdAt: 'desc' },
     include: {
       _count: {
-        select: { products: true, sales: true }
+        select: { storeProducts: true, sales: true }
       }
     }
   })
@@ -55,7 +55,7 @@ export default async function StoresPage() {
               <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
                 <div className="flex items-center text-gray-600 dark:text-gray-300">
                   <Package className="w-4 h-4 mr-2 text-primary-500 flex-shrink-0" />
-                  <span className="text-sm font-medium">{store._count.products} Produk</span>
+                  <span className="text-sm font-medium">{store._count.storeProducts} Produk</span>
                 </div>
                 <div className="flex items-center text-gray-600 dark:text-gray-300">
                   <TrendingUp className="w-4 h-4 mr-2 text-green-500 flex-shrink-0" />

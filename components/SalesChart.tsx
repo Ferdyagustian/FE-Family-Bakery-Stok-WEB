@@ -50,7 +50,7 @@ function toWIBDateKey(isoString: string, mode: 'daily' | 'monthly' | 'yearly'): 
 }
 
 function formatKeyLabel(key: string, mode: 'daily' | 'monthly' | 'yearly'): string {
-  const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
   if (mode === 'daily') {
     const [, m, d] = key.split('-')
     return `${parseInt(d)} ${months[parseInt(m) - 1]}`
@@ -211,7 +211,7 @@ export function SalesChart({
                 dy={10}
               />
               <YAxis
-                tickFormatter={v => `Rp ${Number(v) >= 1000000 ? (Number(v)/1000000).toFixed(1)+'jt' : Number(v).toLocaleString()}`}
+                tickFormatter={v => `Rp ${Number(v) >= 1000000 ? (Number(v) / 1000000).toFixed(1) + 'jt' : Number(v).toLocaleString()}`}
                 tick={{ fill: '#6B7280', fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}

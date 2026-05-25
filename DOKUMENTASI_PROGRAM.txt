@@ -1,8 +1,8 @@
 ================================================================================
          DOKUMENTASI LENGKAP PROGRAM: FAMILY BAKERY - SISTEM MANAJEMEN STOK WEB
 ================================================================================
-Tanggal Dibuat  : 24 Mei 2026
-Versi Aplikasi  : 0.1.0
+Tanggal Dibuat  : 25 Mei 2026
+Versi Aplikasi  : 0.1.1
 Dibuat Oleh     : Tim Pengembang Family Bakery
 Repository      : Ferdyagustian/Family-Bakery-Stok-WEB
 ================================================================================
@@ -127,6 +127,7 @@ Family bakery/
 │   ├── ExportPanel.tsx        <- Panel ekspor data ke Excel
 │   ├── LowStockAlert.tsx      <- Alert peringatan stok menipis
 │   ├── ManageStoreUsers.tsx   <- Kelola pengguna per cabang
+│   ├── PasswordInput.tsx      <- Input password dengan fitur show/hide
 │   ├── ProductCard.tsx        <- Kartu tampilan produk
 │   ├── ProductSalesBreakdown  <- Breakdown penjualan per produk
 │   ├── ProductSearchList.tsx  <- Pencarian dan daftar produk
@@ -140,11 +141,12 @@ Family bakery/
 │   ├── db.ts                  <- Koneksi Prisma database
 │   ├── session.ts             <- Manajemen sesi JWT (encrypt/decrypt)
 │   ├── supabase.ts            <- Konfigurasi Supabase client
-│   └── actions/
+│   ├── actions/
 │       ├── auth.ts            <- Server Action: login/logout
 │       ├── product.ts         <- Server Action: CRUD produk & penjualan
 │       ├── store.ts           <- Server Action: CRUD toko/cabang
-│       └── user.ts            <- Server Action: CRUD pengguna
+│       ├── user.ts            <- Server Action: CRUD pengguna
+│       └── audit.ts           <- Server Action: Pencatatan log aktivitas
 │
 ├── prisma/
 │   └── schema.prisma          <- Skema database (model & relasi)
@@ -160,7 +162,7 @@ Family bakery/
 6. MODEL DATABASE (SKEMA PRISMA)
 ================================================================================
 
-Program ini menggunakan 4 tabel utama:
+Program ini menggunakan 5 tabel utama:
 
 --- Model: User ---
   id           : String (ID unik, CUID)
@@ -202,8 +204,21 @@ Program ini menggunakan 4 tabel utama:
   profitAmount : Float (total keuntungan)
   saleDate     : DateTime (tanggal & waktu transaksi)
 
+--- Model: AuditLog (Riwayat Aktivitas) ---
+  id         : String (ID unik)
+  userId     : String (opsional, ID pengguna yang melakukan aksi)
+  username   : String (opsional, username pelaku)
+  action     : String (jenis aksi: CREATE, UPDATE, DELETE, LOGIN, dll)
+  entityType : String (entitas terkait: PRODUCT, STORE, USER, AUTH)
+  entityId   : String (opsional, ID entitas)
+  entityName : String (opsional, nama entitas yang diubah)
+  detail     : String (opsional, detail tambahan JSON/String)
+  storeId    : String (opsional, cabang terkait aksi tersebut)
+  createdAt  : DateTime (waktu kejadian)
+
 Indeks database dioptimalkan pada:
   - storeId, productId, saleDate (query cepat)
+  - userId, action, createdAt (query untuk audit log)
   - storeId + saleDate (kombinasi untuk laporan per cabang)
   - stockQuantity (untuk filter stok rendah)
 
@@ -213,6 +228,7 @@ Indeks database dioptimalkan pada:
 
 7.1 AUTENTIKASI & KEAMANAN
     - Login dengan username + password
+    - Terdapat fitur Show/Hide password untuk kemudahan input
     - Password dienkripsi menggunakan bcryptjs
     - Sesi berbasis JWT (HS256) yang disimpan di cookie HTTP-Only
     - Masa aktif sesi: 7 hari
@@ -298,13 +314,19 @@ Indeks database dioptimalkan pada:
     - Format file laporan stok:
         No | Cabang | Produk | Harga | Stok Saat Ini | Status
 
-7.9 DARK MODE / LIGHT MODE
+7.9 AUDIT LOG (RIWAYAT AKTIVITAS)
+    - Pencatatan otomatis setiap aksi penting yang dilakukan oleh pengguna
+    - Melacak siapa (user), apa (aksi), dan kapan (waktu)
+    - Menyimpan log untuk login, tambah/edit/hapus produk, cabang, dan user
+    - Halaman khusus Audit untuk memantau seluruh riwayat aktivitas
+
+7.10 DARK MODE / LIGHT MODE
     - Toggle tema terang/gelap
     - Preferensi tema tersimpan (next-themes)
     - Semua komponen mendukung dark mode
     - Transisi warna halus
 
-7.10 RESPONSIVE DESIGN
+7.11 RESPONSIVE DESIGN
     - Layout adaptif untuk desktop, tablet, dan mobile
     - Sidebar dapat disembunyikan (mobile hamburger menu)
     - Grid responsif (2 kolom mobile → 4 kolom desktop)
@@ -415,64 +437,63 @@ DEPLOYMENT KE VERCEL:
 10. KEKURANGAN PROGRAM
 ================================================================================
 
-1. TIDAK ADA FITUR BARCODE / QR CODE
-   Pencatatan penjualan dan stok masih dilakukan secara manual melalui form.
-   Tidak ada integrasi scanner barcode untuk mempercepat proses kasir.
+--- TINGKAT: KRITIS (Berdampak pada Operasional Inti & Keamanan Data) ---
 
-2. TIDAK ADA FITUR POINT OF SALE (POS) LENGKAP
-   Aplikasi ini bukan sistem kasir lengkap. Tidak ada keranjang belanja
-   multi-produk dalam satu transaksi; setiap penjualan dicatat per produk.
+1. BELUM ADA FITUR BACKUP DATA MANUAL
+   Pengguna tidak dapat melakukan backup/export database secara mandiri dari dalam aplikasi. Backup bergantung sepenuhnya pada Supabase.
+   *Alasan Kritis:* Risiko kehilangan data fatal jika terjadi kesalahan (human error) atau isu pada cloud server, yang dapat menghentikan seluruh operasional bisnis.
 
-3. TIDAK ADA NOTIFIKASI REAL-TIME (PUSH/EMAIL)
-   Peringatan stok rendah hanya tampil di dashboard saat dibuka. Tidak ada
-   notifikasi email, WhatsApp, atau push notification otomatis ke pengelola.
+2. TIDAK ADA FITUR OFFLINE
+   Aplikasi sepenuhnya bergantung pada koneksi internet dan server cloud (Supabase + Vercel). Jika internet mati, aplikasi tidak dapat digunakan.
+   *Alasan Kritis:* Toko retail/bakery harus terus melayani pelanggan. Jika internet terputus, kasir tidak bisa mencatat penjualan sehingga antrean menumpuk dan pendapatan tidak tercatat secara real-time.
 
-4. BELUM ADA FITUR MULTI-MATA UANG
-   Program hanya mendukung mata uang Rupiah (IDR). Tidak cocok untuk
-   bisnis yang beroperasi di lebih dari satu negara.
+3. SKALABILITAS DATABASE TERBATAS (FREE TIER)
+   Jika menggunakan Supabase free tier, ada batasan koneksi dan penyimpanan.
+   *Alasan Kritis:* Jika batas koneksi penuh saat jam sibuk, aplikasi akan down atau gagal memuat/menyimpan data, yang melumpuhkan operasional seluruh cabang.
+
+4. BELUM ADA PENGUJIAN OTOMATIS (UNIT / INTEGRATION TEST)
+   Tidak ditemukan file test (Jest, Playwright, Cypress) dalam proyek.
+   *Alasan Kritis:* Risiko tinggi munculnya bug tersembunyi yang merusak data produksi saat tim melakukan pembaruan fitur, terutama untuk proses hitung-hitungan finansial.
+
+--- TINGKAT: MENENGAH (Berdampak pada Efisiensi Kerja & Perhitungan Bisnis) ---
 
 5. LAPORAN TERBATAS
-   Saat ini laporan hanya mencakup penjualan dan stok. Belum ada laporan:
-   - Laba rugi bulanan/tahunan
-   - Laporan pembelian bahan baku (HPP)
-   - Analisis produk terlaris / terburuk per periode
-   - Laporan pertumbuhan per cabang (YoY / MoM)
+   Saat ini laporan hanya mencakup penjualan dan stok. Belum ada laporan Laba Rugi bulanan, pembelian bahan baku (HPP), dan analisis produk terlaris.
+   *Alasan Menengah:* Manajemen kesulitan menghitung profit bersih dan membuat keputusan strategis secara akurat, meski operasional harian tetap bisa berjalan.
 
-6. TIDAK ADA MANAJEMEN SUPPLIER / PEMBELIAN
-   Tidak ada fitur untuk mencatat pembelian bahan baku, data supplier,
-   atau perhitungan Harga Pokok Produksi (HPP) yang akurat.
+6. TIDAK ADA FITUR POINT OF SALE (POS) LENGKAP
+   Tidak ada keranjang belanja multi-produk dalam satu transaksi; setiap penjualan dicatat per produk.
+   *Alasan Menengah:* Memperlambat proses pelayanan pelanggan saat pelanggan membeli berbagai jenis roti sekaligus dalam satu struk.
 
-7. TIDAK ADA FITUR OFFLINE
-   Aplikasi sepenuhnya bergantung pada koneksi internet dan server cloud
-   (Supabase + Vercel). Jika internet mati, aplikasi tidak dapat digunakan.
+7. TIDAK ADA MANAJEMEN SUPPLIER / PEMBELIAN
+   Tidak ada fitur untuk mencatat pembelian bahan baku, data supplier, atau perhitungan HPP.
+   *Alasan Menengah:* Penghitungan stok dan biaya produksi dilakukan secara terpisah di luar sistem, meningkatkan beban kerja manual admin.
 
-8. SKALABILITAS DATABASE TERBATAS (FREE TIER)
-   Jika menggunakan Supabase free tier, ada batasan koneksi dan penyimpanan.
-   Untuk skala besar, perlu upgrade ke paket berbayar.
+8. TIDAK ADA MANAJEMEN KATEGORI PRODUK
+   Produk tidak dapat dikategorikan (misalnya: Roti Manis, Roti Tawar, Kue), sehingga sulit difilter saat daftar produk sudah banyak.
+   *Alasan Menengah:* Mempersulit pencarian dan analisis produk saat varian roti yang dijual mencapai ratusan macam.
 
-9. TIDAK ADA FITUR AUDIT LOG / RIWAYAT PERUBAHAN
-   Tidak ada catatan siapa yang mengubah data apa dan kapan. Jika ada
-   kesalahan input, sulit untuk melacak dan membatalkan perubahan.
+--- TINGKAT: RENDAH (Fitur Tambahan, UX, dan Peningkatan Estetika) ---
 
-10. BELUM ADA FITUR BACKUP DATA MANUAL
-    Pengguna tidak dapat melakukan backup/export database secara mandiri
-    dari dalam aplikasi. Backup bergantung sepenuhnya pada Supabase.
+9. TIDAK ADA FITUR BARCODE / QR CODE
+   Pencatatan penjualan dan stok masih dilakukan secara manual melalui form tanpa integrasi scanner.
+   *Alasan Rendah:* Pengguna masih bisa mengetikkan nama produk di kolom pencarian (search list), meski kurang efisien dibandingkan scanning.
 
-11. TIDAK ADA FITUR CUSTOMER MANAGEMENT (CRM)
-    Tidak ada pencatatan data pelanggan, program loyalitas, atau riwayat
-    pembelian per pelanggan.
+10. TIDAK ADA NOTIFIKASI REAL-TIME (PUSH/EMAIL)
+    Peringatan stok rendah hanya tampil di dashboard saat dibuka. Tidak ada notifikasi otomatis ke pengelola.
+    *Alasan Rendah:* Manajer toko umumnya membuka dashboard setiap hari, sehingga status peringatan tetap akan terlihat secara proaktif.
 
-12. TAMPILAN LAPORAN HANYA DI EXCEL
-    Belum ada fitur cetak laporan ke PDF langsung dari aplikasi,
-    yang sering dibutuhkan untuk keperluan formal bisnis.
+11. TAMPILAN LAPORAN HANYA DI EXCEL
+    Belum ada fitur cetak laporan ke PDF langsung dari aplikasi.
+    *Alasan Rendah:* Laporan Excel (.xlsx) justru lebih disukai oleh akuntan untuk diolah kembali datanya. Ekspor PDF hanya untuk estetika formal.
 
-13. TIDAK ADA MANAJEMEN KATEGORI PRODUK
-    Produk tidak dapat dikategorikan (misalnya: Roti Manis, Roti Tawar,
-    Kue, dll), sehingga sulit difilter saat daftar produk sudah banyak.
+12. TIDAK ADA FITUR CUSTOMER MANAGEMENT (CRM)
+    Tidak ada pencatatan data pelanggan, program loyalitas, atau riwayat pembelian per pelanggan.
+    *Alasan Rendah:* Rata-rata toko roti melayani pembeli anonim (walk-in) dan belum terlalu mendesak untuk memiliki sistem membership.
 
-14. BELUM ADA PENGUJIAN OTOMATIS (UNIT / INTEGRATION TEST)
-    Tidak ditemukan file test (Jest, Playwright, Cypress) dalam proyek.
-    Risiko bug meningkat seiring pengembangan fitur baru.
+13. BELUM ADA FITUR MULTI-MATA UANG
+    Program hanya mendukung mata uang Rupiah (IDR).
+    *Alasan Rendah:* Target pasar dari Family Bakery adalah bisnis lokal di Indonesia, jadi ekspansi internasional (multi-currency) belum dibutuhkan.
 
 ================================================================================
 11. REKOMENDASI PENGEMBANGAN KE DEPAN
@@ -482,7 +503,6 @@ Jangka Pendek (1-3 bulan):
   - Tambah notifikasi email/WhatsApp untuk stok rendah
   - Fitur cetak PDF laporan langsung dari aplikasi
   - Kategori produk untuk filter yang lebih baik
-  - Audit log sederhana (siapa mengubah apa)
   - Unit test dasar dengan Jest/Vitest
 
 Jangka Menengah (3-6 bulan):
@@ -526,5 +546,5 @@ Cache & Performa:
 
 ================================================================================
                          AKHIR DOKUMENTASI
-           Family Bakery - Sistem Manajemen Stok WEB v0.1.0
+           Family Bakery - Sistem Manajemen Stok WEB v0.1.1
 ================================================================================
