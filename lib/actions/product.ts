@@ -117,7 +117,7 @@ export async function addStoreProduct(formData: FormData) {
 
 export async function updateProduct(formData: FormData) {
   const user = await getSessionUser()
-  if (!user) return { error: 'Unauthorized' }
+  if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' }
 
   const productId = formData.get('productId') as string
   const storeId = formData.get('storeId') as string
@@ -226,9 +226,9 @@ export async function recordSale(productId: string, storeId: string, quantity: n
   }
 }
 
-export async function deleteProduct(productId: string, storeId: string) {
+export async function deleteMasterProduct(productId: string) {
   const user = await getSessionUser()
-  if (!user) return { error: 'Unauthorized' }
+  if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' }
 
   try {
     const product = await prisma.product.findUnique({
@@ -236,25 +236,26 @@ export async function deleteProduct(productId: string, storeId: string) {
       select: { name: true }
     })
 
-    // Hanya hapus dari StoreProduct (Cabang), bukan Master
-    await prisma.storeProduct.deleteMany({
-      where: { productId, storeId }
+    // Ini akan menghapus Master Product dan cascade menghapus semua StoreProduct & Sale
+    await prisma.product.delete({
+      where: { id: productId }
     })
 
     await writeAuditLog({
       userId: user.id,
       username: user.username,
-      action: 'DELETE_PRODUCT',
-      entityType: 'StoreProduct',
+      action: 'DELETE_MASTER_PRODUCT',
+      entityType: 'Product',
       entityId: productId,
       entityName: product?.name ?? productId,
-      storeId,
     })
 
-    revalidatePath(`/stores/${storeId}`)
+    revalidatePath('/products')
+    // Meminta semua halaman toko di-revalidate karena produk hilang
+    revalidatePath('/', 'layout')
     return { success: true }
   } catch (error) {
-    return { error: 'Gagal menghapus produk dari toko' }
+    return { error: 'Gagal menghapus produk master' }
   }
 }
 
@@ -365,5 +366,79 @@ export async function recordBulkSales(
       return { error: `Stok tidak cukup untuk produk: ${productName}` }
     }
     return { error: 'Gagal memproses transaksi kasir' }
+  }
+}
+
+export async function updateBulkPrices(items: { id: string, price: number }[]) {
+  const user = await getSessionUser()
+  if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' }
+
+  const validItems = items.filter(i => i.id && !isNaN(i.price) && i.price >= 0)
+  if (validItems.length === 0) return { error: 'Tidak ada data valid untuk disimpan' }
+
+  try {
+    await prisma.$transaction(
+      validItems.map(item => 
+        prisma.product.update({
+          where: { id: item.id },
+          data: { price: item.price }
+        })
+      )
+    )
+
+    await writeAuditLog({
+      userId: user.id,
+      username: user.username,
+      action: 'UPDATE_BULK_PRICES',
+      entityType: 'Product',
+      detail: { count: validItems.length },
+    })
+
+    revalidatePath('/products')
+    revalidatePath('/', 'layout')
+    return { success: true }
+  } catch (error) {
+    return { error: 'Gagal menyimpan perubahan harga secara massal' }
+  }
+}
+
+export async function adjustAllPrices(type: 'increase' | 'decrease', amountType: 'nominal' | 'percent', value: number) {
+  const user = await getSessionUser()
+  if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' }
+  if (isNaN(value) || value <= 0) return { error: 'Nilai harus lebih dari 0' }
+
+  try {
+    const products = await prisma.product.findMany({ select: { id: true, price: true } })
+    
+    await prisma.$transaction(
+      products.map(product => {
+        let newPrice = product.price
+        if (amountType === 'nominal') {
+          newPrice = type === 'increase' ? product.price + value : Math.max(0, product.price - value)
+        } else if (amountType === 'percent') {
+          const change = product.price * (value / 100)
+          newPrice = type === 'increase' ? product.price + change : Math.max(0, product.price - change)
+        }
+
+        return prisma.product.update({
+          where: { id: product.id },
+          data: { price: Math.round(newPrice) }
+        })
+      })
+    )
+
+    await writeAuditLog({
+      userId: user.id,
+      username: user.username,
+      action: 'ADJUST_ALL_PRICES',
+      entityType: 'Product',
+      detail: { type, amountType, value },
+    })
+
+    revalidatePath('/products')
+    revalidatePath('/', 'layout')
+    return { success: true }
+  } catch (error) {
+    return { error: 'Gagal menyesuaikan harga secara massal' }
   }
 }

@@ -15,6 +15,9 @@ export type AuditAction =
   | 'CREATE_USER'
   | 'DELETE_USER'
   | 'CLEAR_LOGS'
+  | 'DELETE_MASTER_PRODUCT'
+  | 'UPDATE_BULK_PRICES'
+  | 'ADJUST_ALL_PRICES'
 
 interface AuditParams {
   userId?: string
@@ -64,6 +67,9 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   CREATE_USER:     'Tambah Pengguna',
   DELETE_USER:     'Hapus Pengguna',
   CLEAR_LOGS:      'Bersihkan Log',
+  DELETE_MASTER_PRODUCT: 'Hapus Produk Master',
+  UPDATE_BULK_PRICES:    'Edit Harga Massal',
+  ADJUST_ALL_PRICES:     'Penyesuaian Harga Global',
 }
 
 // ─── Warna badge per aksi ──────────────────────────────────────

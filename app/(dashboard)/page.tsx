@@ -136,7 +136,29 @@ async function DashboardData() {
   )
 }
 
+import { getSession } from '@/lib/session'
+import { redirect } from 'next/navigation'
+
 export default async function DashboardPage() {
+  const session = await getSession()
+  if (session?.user?.role === 'MANAGER') {
+    if (session.user.storeId) {
+      redirect(`/stores/${session.user.storeId}`)
+    } else {
+      return (
+        <div className="flex flex-col items-center justify-center h-[70vh] text-center">
+          <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
+            <Store className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-bold font-heading text-gray-900 dark:text-white mb-2">Akun Tidak Terhubung ke Cabang</h2>
+          <p className="text-gray-500 dark:text-gray-400 max-w-md">
+            Akun Anda saat ini tidak memiliki akses ke cabang manapun (kemungkinan cabang sebelumnya telah dihapus). Silakan hubungi Admin Utama untuk menugaskan ulang akun Anda ke cabang yang benar.
+          </p>
+        </div>
+      )
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Page Title */}

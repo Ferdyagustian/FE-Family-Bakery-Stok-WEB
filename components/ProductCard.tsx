@@ -1,101 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { deleteProduct } from '@/lib/actions/product'
-import { EditProductModal } from '@/components/EditProductModal'
-import { Trash2, Package, Tag, ShoppingCart, Minus, Plus, AlertTriangle, X, Percent, CheckCircle2 } from 'lucide-react'
+import { Package, Tag, ShoppingCart, Minus, Plus, Percent, CheckCircle2 } from 'lucide-react'
 import Image from 'next/image'
-
-// ── Delete Confirmation Modal ──────────────────────────────────────
-function DeleteConfirmModal({
-  productName,
-  onConfirm,
-  onCancel,
-  loading,
-}: {
-  productName: string
-  onConfirm: () => void
-  onCancel: () => void
-  loading: boolean
-}) {
-  const [typed, setTyped] = useState('')
-  const isMatch = typed === 'pastikan'
-
-  return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm p-6 relative">
-        <button
-          onClick={onCancel}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-          disabled={loading}
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        <div className="flex items-center justify-center w-14 h-14 rounded-full bg-red-100 mx-auto mb-4">
-          <AlertTriangle className="w-7 h-7 text-red-600" />
-        </div>
-
-        <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white text-center">
-          Hapus Produk?
-        </h3>
-        <p className="text-gray-500 dark:text-gray-400 text-sm text-center mt-1 mb-5">
-          Produk <span className="font-semibold text-gray-800 dark:text-gray-100">"{productName}"</span> akan
-          dihapus beserta semua riwayat penjualannya dan{' '}
-          <span className="text-red-600 font-semibold">tidak dapat dikembalikan</span>.
-        </p>
-
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">
-            Ketik{' '}
-            <code className="bg-gray-100 dark:bg-gray-800 text-red-600 px-1.5 py-0.5 rounded font-mono text-sm">
-              pastikan
-            </code>{' '}
-            untuk melanjutkan:
-          </label>
-          <input
-            type="text"
-            value={typed}
-            onChange={e => setTyped(e.target.value)}
-            className={`w-full h-11 rounded-lg border px-3 text-sm focus:outline-none focus:ring-2 transition-colors ${
-              typed.length > 0 && !isMatch
-                ? 'border-red-300 bg-red-50 focus:ring-red-400'
-                : isMatch
-                ? 'border-green-400 bg-green-50 focus:ring-green-400'
-                : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'
-            }`}
-            placeholder='Ketik "pastikan"'
-            disabled={loading}
-            autoFocus
-          />
-          {typed.length > 0 && !isMatch && (
-            <p className="text-red-500 text-xs mt-1">Teks tidak sesuai. Ketik persis: pastikan</p>
-          )}
-          {isMatch && (
-            <p className="text-green-600 text-xs mt-1 font-medium">Konfirmasi diterima</p>
-          )}
-        </div>
-
-        <div className="flex gap-3">
-          <button
-            onClick={onCancel}
-            disabled={loading}
-            className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-semibold text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
-          >
-            Batal
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={!isMatch || loading}
-            className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-sm transition-colors disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Menghapus...' : 'Hapus Produk'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ── Product Card ───────────────────────────────────────────────────
 export function ProductCard({ 
@@ -111,9 +18,7 @@ export function ProductCard({
   onAddToCart?: (product: any, qty: number) => void,
   cartQty?: number
 }) {
-  const [deleteLoading, setDeleteLoading] = useState(false)
   const [saleQty, setSaleQty] = useState<number | ''>(1)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [saleSuccess, setSaleSuccess] = useState(false)
 
   // ── Optimistic stock update ────────────────────────────────────
@@ -137,15 +42,7 @@ export function ProductCard({
     }
   }
 
-  async function handleDeleteConfirmed() {
-    setDeleteLoading(true)
-    const res = await deleteProduct(product.id, storeId)
-    setDeleteLoading(false)
-    if (res?.error) {
-      alert(res.error)
-      setShowDeleteModal(false)
-    }
-  }
+  // Removed delete functionality as it is now strictly managed by Admin
 
   const isOutOfStock = availableStock === 0
   const isLowStock = availableStock > 0 && availableStock < 10
@@ -156,15 +53,6 @@ export function ProductCard({
 
   return (
     <>
-      {showDeleteModal && (
-        <DeleteConfirmModal
-          productName={product.name}
-          onConfirm={handleDeleteConfirmed}
-          onCancel={() => setShowDeleteModal(false)}
-          loading={deleteLoading}
-        />
-      )}
-
       <div className={`bg-white dark:bg-gray-900 rounded-xl border flex ${viewMode === 'list' ? 'flex-col sm:flex-row items-center p-3 gap-4' : 'flex-col h-full'} overflow-hidden group hover:border-gray-300 dark:hover:border-gray-700 transition-colors duration-150 border-gray-200 dark:border-gray-800 shadow-sm`}>
         {/* Product Image */}
         {viewMode === 'grid' && (
@@ -211,27 +99,6 @@ export function ProductCard({
           {/* Name + Actions */}
           <div className="flex items-start justify-between gap-2">
             <h3 className="font-bold text-base text-gray-900 dark:text-white leading-tight line-clamp-2 flex-1">{product.name}</h3>
-            <div className="flex items-center gap-0.5 flex-shrink-0">
-              <EditProductModal
-                product={{
-                  id: product.id,
-                  name: product.name,
-                  description: product.description,
-                  imageUrl: product.imageUrl,
-                  price: product.price,
-                  discount: product.discount || 0,
-                }}
-                storeId={storeId}
-              />
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                disabled={deleteLoading}
-                className="text-gray-300 hover:text-red-500 transition-colors p-1 flex-shrink-0"
-                title="Hapus Produk"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
           </div>
 
           {product.description && (

@@ -22,7 +22,7 @@ model User {
   name         String?
   role         Role     @default(MANAGER)
   storeId      String?  
-  store        Store?   @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  store        Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
 
   @@index([storeId])

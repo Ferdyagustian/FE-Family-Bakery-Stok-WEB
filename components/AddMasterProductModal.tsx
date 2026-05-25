@@ -62,7 +62,7 @@ export function AddMasterProductModal() {
 
   return (
     <>
-      <button onClick={() => setIsOpen(true)} className="btn-primary whitespace-nowrap">
+      <button onClick={() => setIsOpen(true)} className="btn-primary whitespace-nowrap w-full justify-center">
         + Tambah Master Produk
       </button>
 

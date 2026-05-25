@@ -14,7 +14,7 @@ type ProductData = {
   discount: number
 }
 
-export function EditProductModal({ product, storeId }: { product: ProductData; storeId: string }) {
+export function EditMasterProductModal({ product }: { product: ProductData }) {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [imageUrl, setImageUrl] = useState(product.imageUrl || '')
@@ -63,7 +63,6 @@ export function EditProductModal({ product, storeId }: { product: ProductData; s
     setLoading(true)
     const formData = new FormData(e.currentTarget)
     formData.append('productId', product.id)
-    formData.append('storeId', storeId)
     formData.append('imageUrl', imageUrl)
 
     const res = await updateProduct(formData)

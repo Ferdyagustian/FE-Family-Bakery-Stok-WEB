@@ -18,7 +18,7 @@ const ENTITY_LABELS: Record<string, string> = {
 export default async function AuditPage({
   searchParams,
 }: {
-  searchParams: Promise<{ action?: string; page?: string; storeId?: string }>
+  searchParams: Promise<{ action?: string; page?: string; storeId?: string; startDate?: string; endDate?: string }>
 }) {
   // Hanya ADMIN yang boleh akses
   const session = await getSession()
@@ -35,6 +35,11 @@ export default async function AuditPage({
   const where: any = {}
   if (params.action) where.action = params.action
   if (params.storeId) where.storeId = params.storeId
+  if (params.startDate || params.endDate) {
+    where.createdAt = {}
+    if (params.startDate) where.createdAt.gte = new Date(params.startDate)
+    if (params.endDate) where.createdAt.lte = new Date(params.endDate)
+  }
 
   // Ambil data paralel
   const [logs, total, stores] = await Promise.all([
@@ -109,6 +114,32 @@ export default async function AuditPage({
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </select>
+          </div>
+
+          {/* Filter Start Date */}
+          <div className="flex-1 min-w-[160px]">
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
+              Mulai Dari
+            </label>
+            <input
+              type="datetime-local"
+              name="startDate"
+              defaultValue={params.startDate ?? ''}
+              className="w-full h-10 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+
+          {/* Filter End Date */}
+          <div className="flex-1 min-w-[160px]">
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
+              Sampai Dengan
+            </label>
+            <input
+              type="datetime-local"
+              name="endDate"
+              defaultValue={params.endDate ?? ''}
+              className="w-full h-10 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
           </div>
 
           {/* Tombol */}
