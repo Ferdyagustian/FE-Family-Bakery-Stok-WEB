@@ -24,6 +24,18 @@ export async function createStore(formData: FormData) {
       data: { name, location }
     })
 
+    // Auto-populate all master products into the new store with 0 stock
+    const products = await prisma.product.findMany({ select: { id: true } })
+    if (products.length > 0) {
+      await prisma.storeProduct.createMany({
+        data: products.map(p => ({
+          storeId: store.id,
+          productId: p.id,
+          stockQuantity: 0
+        }))
+      })
+    }
+
     await writeAuditLog({
       userId: user.id,
       username: user.username,
