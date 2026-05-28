@@ -2,18 +2,28 @@ import { Resend } from 'resend'
 import prisma from '@/lib/db'
 import { NextResponse } from 'next/server'
 import { generateLowStockEmailHTML } from '@/lib/email-templates'
+import crypto from 'crypto'
 
 const THRESHOLD = parseInt(process.env.LOW_STOCK_THRESHOLD || '10')
 
 export async function GET(request: Request) {
   const resend = new Resend(process.env.RESEND_API_KEY || 'dummy_key')
   
-  // 1. Verifikasi authorization header (Cron Secret)
+  // 1. Verifikasi authorization header (Cron Secret) dengan perbandingan konstan waktu (Timing-safe)
   const authHeader = request.headers.get('authorization')
-  if (
-    process.env.NODE_ENV === 'production' &&
-    authHeader !== `Bearer ${process.env.CRON_SECRET}`
-  ) {
+  
+  const expectedToken = `Bearer ${process.env.CRON_SECRET}`
+  const actualToken = authHeader || ''
+  
+  let isAuthorized = false
+  if (expectedToken.length === actualToken.length) {
+    isAuthorized = crypto.timingSafeEqual(
+      Buffer.from(actualToken),
+      Buffer.from(expectedToken)
+    )
+  }
+
+  if (process.env.NODE_ENV === 'production' && !isAuthorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

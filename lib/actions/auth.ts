@@ -15,15 +15,43 @@ export async function loginAction(formData: FormData) {
   }
 
   try {
+    const failedAttempts = await prisma.auditLog.count({
+      where: {
+        username,
+        action: 'FAILED_LOGIN',
+        createdAt: {
+          gte: new Date(Date.now() - 15 * 60 * 1000)
+        }
+      }
+    })
+
+    if (failedAttempts >= 5) {
+      redirect('/login?error=TooManyRequests')
+    }
+
     const user = await prisma.user.findUnique({ where: { username } })
 
     if (!user) {
+      await writeAuditLog({
+        username,
+        action: 'FAILED_LOGIN',
+        entityType: 'User',
+        detail: { reason: 'UserNotFound' }
+      })
       redirect('/login?error=UserNotFound')
     }
 
     const passwordMatch = await bcrypt.compare(password, user.passwordHash)
 
     if (!passwordMatch) {
+      await writeAuditLog({
+        userId: user.id,
+        username,
+        action: 'FAILED_LOGIN',
+        entityType: 'User',
+        entityId: user.id,
+        detail: { reason: 'WrongPassword' }
+      })
       redirect('/login?error=WrongPassword')
     }
 

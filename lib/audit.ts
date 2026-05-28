@@ -18,6 +18,7 @@ export type AuditAction =
   | 'DELETE_MASTER_PRODUCT'
   | 'UPDATE_BULK_PRICES'
   | 'ADJUST_ALL_PRICES'
+  | 'FAILED_LOGIN'
 
 interface AuditParams {
   userId?: string
@@ -70,6 +71,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   DELETE_MASTER_PRODUCT: 'Hapus Produk Master',
   UPDATE_BULK_PRICES:    'Edit Harga Massal',
   ADJUST_ALL_PRICES:     'Penyesuaian Harga Global',
+  FAILED_LOGIN:          'Gagal Login',
 }
 
 // ─── Warna badge per aksi ──────────────────────────────────────
@@ -81,5 +83,6 @@ export function getAuditActionColor(action: string): string {
   if (action === 'RECORD_SALE')     return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
   if (action === 'LOGIN')           return 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
   if (action === 'LOGOUT')          return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+  if (action === 'FAILED_LOGIN')    return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
   return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
 }

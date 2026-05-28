@@ -12,7 +12,7 @@ async function getSessionUser() {
 
 export async function createStore(formData: FormData) {
   const user = await getSessionUser()
-  if (!user) return { error: 'Unauthorized' }
+  if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' }
 
   const name = formData.get('name') as string
   const location = formData.get('location') as string
@@ -55,7 +55,7 @@ export async function createStore(formData: FormData) {
 
 export async function updateStore(id: string, formData: FormData) {
   const user = await getSessionUser()
-  if (!user) return { error: 'Unauthorized' }
+  if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' }
 
   const name = formData.get('name') as string
   const location = formData.get('location') as string
@@ -88,7 +88,7 @@ export async function updateStore(id: string, formData: FormData) {
 
 export async function deleteStore(id: string) {
   const user = await getSessionUser()
-  if (!user) return { error: 'Unauthorized' }
+  if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' }
 
   try {
     // Ambil nama toko sebelum dihapus

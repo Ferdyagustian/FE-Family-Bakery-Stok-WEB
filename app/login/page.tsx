@@ -13,6 +13,7 @@ export default async function LoginPage(props: { searchParams: SearchParams }) {
     UserNotFound: 'Username tidak ditemukan.',
     WrongPassword: 'Password salah. Coba lagi.',
     ServerError: 'Terjadi kesalahan pada server. Coba lagi.',
+    TooManyRequests: 'Terlalu banyak percobaan login yang gagal. Sistem mengunci akun Anda sementara. Silakan coba lagi nanti.',
   }
 
   return (

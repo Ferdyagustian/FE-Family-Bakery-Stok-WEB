@@ -1,24 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getSession } from "@/lib/session";
+import { assertStoreAccess } from "@/lib/actions/auth-guard";
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const storeId = searchParams.get("storeId") || undefined;
+
     // ── Auth Guard ──────────────────────────────
-    const isAuthenticated = await getSession();
-    if (!isAuthenticated) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    if (storeId) {
+      try {
+        await assertStoreAccess(storeId);
+      } catch (err) {
+        return NextResponse.json({ error: "Forbidden: Access denied to this store" }, { status: 403 });
+      }
+    } else {
+      const session = await getSession();
+      if (!session || session.user.role !== 'ADMIN') {
+        return NextResponse.json({ error: "Unauthorized or requires specific store ID" }, { status: 401 });
+      }
     }
 
-    // ── Parse Query Params ──────────────────────
-    const { searchParams } = new URL(request.url);
     const type = searchParams.get("type"); // "sales" | "stock"
-    const storeId = searchParams.get("storeId") || undefined;
     const from = searchParams.get("from");
     const to = searchParams.get("to");
 

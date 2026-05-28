@@ -7,9 +7,13 @@ const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
 export async function POST(request: NextRequest) {
   try {
-    const isAuthenticated = await getSession();
-    if (!isAuthenticated) {
+    const session = await getSession();
+    if (!session) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.role !== 'ADMIN') {
+      return NextResponse.json({ success: false, error: "Forbidden: Only admins can upload files" }, { status: 403 });
     }
 
     const data = await request.formData();

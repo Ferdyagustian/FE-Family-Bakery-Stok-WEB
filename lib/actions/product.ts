@@ -4,6 +4,7 @@ import prisma from '@/lib/db'
 import { revalidatePath } from 'next/cache'
 import { getSession } from '@/lib/session'
 import { writeAuditLog } from '@/lib/audit'
+import { assertStoreAccess } from '@/lib/actions/auth-guard'
 
 async function getSessionUser() {
   const session = await getSession()
@@ -67,12 +68,16 @@ export async function createMasterProduct(formData: FormData) {
 }
 
 export async function addStoreProduct(formData: FormData) {
-  const user = await getSessionUser()
-  if (!user) return { error: 'Unauthorized' }
-
   const storeId = formData.get('storeId') as string
   const productId = formData.get('productId') as string
   const stockQuantity = parseInt(formData.get('stockQuantity') as string)
+
+  let user;
+  try {
+    user = await assertStoreAccess(storeId);
+  } catch (err) {
+    return { error: 'Unauthorized or Forbidden' };
+  }
 
   if (!storeId || !productId || isNaN(stockQuantity) || stockQuantity < 0) {
     return { error: 'Data tidak lengkap atau tidak valid' }
@@ -159,8 +164,12 @@ export async function updateProduct(formData: FormData) {
 }
 
 export async function recordSale(productId: string, storeId: string, quantity: number) {
-  const user = await getSessionUser()
-  if (!user) return { error: 'Unauthorized' }
+  let user;
+  try {
+    user = await assertStoreAccess(storeId);
+  } catch (err) {
+    return { error: 'Unauthorized or Forbidden' };
+  }
 
   if (!productId || !storeId || quantity <= 0 || !Number.isInteger(quantity)) {
     return { error: 'Data penjualan tidak valid' }
@@ -263,8 +272,12 @@ export async function bulkRestockProducts(
   restocks: { productId: string; qty: number; name?: string }[],
   storeId: string
 ) {
-  const user = await getSessionUser()
-  if (!user) return { error: 'Unauthorized' }
+  let user;
+  try {
+    user = await assertStoreAccess(storeId);
+  } catch (err) {
+    return { error: 'Unauthorized or Forbidden' };
+  }
 
   const validRestocks = restocks.filter((r) => Number.isInteger(r.qty) && r.qty > 0)
   if (validRestocks.length === 0) return { error: 'Tidak ada produk yang diisi jumlah restoknya' }
@@ -300,8 +313,12 @@ export async function recordBulkSales(
   items: { productId: string; quantity: number }[],
   storeId: string
 ) {
-  const user = await getSessionUser()
-  if (!user) return { error: 'Unauthorized' }
+  let user;
+  try {
+    user = await assertStoreAccess(storeId);
+  } catch (err) {
+    return { error: 'Unauthorized or Forbidden' };
+  }
 
   const validItems = items.filter((item) => item.productId && Number.isInteger(item.quantity) && item.quantity > 0)
   if (validItems.length === 0) return { error: 'Keranjang kosong atau data tidak valid' }

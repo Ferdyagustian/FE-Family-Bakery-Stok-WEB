@@ -1,8 +1,8 @@
 import { cookies } from 'next/headers'
 import { SignJWT, jwtVerify } from 'jose'
+import { ENV } from './env'
 
-const secretKey = process.env.JWT_SECRET || 'family-bakery-super-secret-key-change-in-prod'
-const key = new TextEncoder().encode(secretKey)
+const key = new TextEncoder().encode(ENV.JWT_SECRET)
 
 export async function encrypt(payload: any) {
   return await new SignJWT(payload)
