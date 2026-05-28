@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   description: "Sistem Manajemen Stok dan Penjualan Cabang Family Bakery",
 };
 
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({
   children,
 }: Readonly<{
