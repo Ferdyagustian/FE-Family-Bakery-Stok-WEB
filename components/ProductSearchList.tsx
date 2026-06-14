@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { ProductCard } from '@/components/ProductCard'
-import { Package, Search, LayoutGrid, List, ShoppingCart, X, Plus, Minus, Trash2 } from 'lucide-react'
+import { Package, Search, LayoutGrid, List, ShoppingCart, X, Plus, Minus, Trash2, PackageOpen } from 'lucide-react'
 import { toast } from 'sonner'
 import { recordBulkSales } from '@/lib/actions/product'
 
@@ -134,17 +134,19 @@ export function ProductSearchList({ products, storeId }: { products: any[], stor
           )
         })}
         {filteredProducts.length === 0 && (
-          <div className="col-span-full flex flex-col items-center justify-center p-10 bg-white dark:bg-gray-900 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500">
-            <Package className="w-12 h-12 mb-3" />
-            <p className="text-base font-semibold text-gray-600 dark:text-gray-300">
+          <div className="col-span-full flex flex-col items-center justify-center p-16 bg-white dark:bg-gray-900 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-800 text-center">
+            <div className="w-20 h-20 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mb-5 text-gray-400 dark:text-gray-500">
+              <PackageOpen className="w-10 h-10" />
+            </div>
+            <p className="text-lg font-bold text-gray-800 dark:text-gray-200">
               {products.length === 0 
                 ? 'Belum ada produk di cabang ini' 
                 : 'Produk tidak ditemukan'}
             </p>
-            <p className="text-sm text-center mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-sm">
               {products.length === 0 
-                ? 'Klik "Tambah Produk" untuk mulai mengisi stok'
-                : 'Coba gunakan kata kunci pencarian yang lain'}
+                ? 'Silakan tambahkan produk atau lakukan restok untuk cabang ini.'
+                : 'Coba gunakan kata kunci pencarian yang lain untuk menemukan produk.'}
             </p>
           </div>
         )}
@@ -173,7 +175,7 @@ export function ProductSearchList({ products, storeId }: { products: any[], stor
         <div className="fixed inset-0 z-50 flex justify-end">
           {/* Backdrop */}
           <div 
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+            className="glass-overlay cursor-pointer transition-opacity"
             onClick={() => setIsCartOpen(false)}
           />
           

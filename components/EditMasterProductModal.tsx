@@ -88,10 +88,10 @@ export function EditMasterProductModal({ product }: { product: ProductData }) {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+        <div className="glass-overlay">
           <div className="bg-white dark:bg-gray-900 w-full sm:rounded-2xl shadow-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto sm:max-w-lg">
             {/* Modal Header */}
-            <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-5 py-4 flex items-center justify-between z-10 rounded-t-2xl">
+            <div className="glass-header">
               <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white">Edit Produk</h3>
               <button onClick={handleClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
                 <X className="w-5 h-5" />

@@ -34,10 +34,10 @@ export function AddStoreForm() {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+        <div className="glass-overlay">
           <div className="bg-white dark:bg-gray-900 w-full sm:rounded-2xl shadow-2xl sm:max-w-md">
             {/* Header */}
-            <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between rounded-t-2xl">
+            <div className="glass-header">
               <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white">Tambah Cabang Baru</h3>
               <button onClick={() => setIsOpen(false)} className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-800 rounded-full transition-colors">
                 <X className="w-5 h-5" />

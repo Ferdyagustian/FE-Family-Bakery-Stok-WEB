@@ -47,7 +47,7 @@ export function BulkPriceAdjustModal() {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+        <div className="glass-overlay">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
             <button
               onClick={() => setIsOpen(false)}

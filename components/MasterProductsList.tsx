@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Package, TrendingUp, Save, Edit3, Trash2, Search } from 'lucide-react'
+import { Package, TrendingUp, Save, Edit3, Trash2, Search, PackageOpen } from 'lucide-react'
 import { updateBulkPrices, deleteMasterProduct } from '@/lib/actions/product'
 import { EditMasterProductModal } from '@/components/EditMasterProductModal'
 import Image from 'next/image'
@@ -184,8 +184,20 @@ export function MasterProductsList({ products }: { products: any[] }) {
               ))}
               {filteredProducts.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-gray-400">
-                    Belum ada data produk.
+                  <td colSpan={5} className="px-5 py-16 text-center">
+                    <div className="flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
+                      <div className="w-20 h-20 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                        <PackageOpen className="w-10 h-10" />
+                      </div>
+                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                        {searchQuery ? 'Produk Tidak Ditemukan' : 'Katalog Kosong'}
+                      </h4>
+                      <p className="text-sm max-w-sm text-gray-500 dark:text-gray-400">
+                        {searchQuery 
+                          ? `Tidak ada produk yang cocok dengan pencarian "${searchQuery}". Coba kata kunci lain.` 
+                          : 'Belum ada produk master yang didaftarkan. Silakan tambahkan produk master baru.'}
+                      </p>
+                    </div>
                   </td>
                 </tr>
               )}
