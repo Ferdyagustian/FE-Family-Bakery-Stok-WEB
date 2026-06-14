@@ -125,14 +125,14 @@ export async function updateProduct(formData: FormData) {
   if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' }
 
   const productId = formData.get('productId') as string
-  const storeId = formData.get('storeId') as string
+  const storeId = formData.get('storeId') as string | null
   const name = (formData.get('name') as string)?.trim()
   const description = (formData.get('description') as string)?.trim() || null
   const imageUrl = (formData.get('imageUrl') as string)?.trim() || null
   const price = parseFloat(formData.get('price') as string)
   const discount = parseInt(formData.get('discount') as string) || 0
 
-  if (!productId || !storeId || !name || isNaN(price) || price <= 0) {
+  if (!productId || !name || isNaN(price) || price <= 0) {
     return { error: 'Data tidak lengkap atau tidak valid' }
   }
   if (discount < 0 || discount > 100) {
@@ -152,11 +152,16 @@ export async function updateProduct(formData: FormData) {
       entityType: 'Product',
       entityId: productId,
       entityName: name,
-      storeId,
+      storeId: storeId || undefined,
       detail: { price, discount },
     })
 
-    revalidatePath(`/stores/${storeId}`)
+    if (storeId) {
+      revalidatePath(`/stores/${storeId}`)
+    }
+    revalidatePath('/products')
+    revalidatePath('/', 'layout')
+    
     return { success: true }
   } catch (error: any) {
     return { error: error?.message || 'Gagal memperbarui produk' }

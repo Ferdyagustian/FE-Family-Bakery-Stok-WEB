@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createManager, deleteManager } from '@/lib/actions/user'
 import { Users, UserPlus, Trash2, Key } from 'lucide-react'
+import { toast } from 'sonner'
 
 export function ManageStoreUsers({ storeId, users }: { storeId: string, users: any[] }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -17,15 +18,17 @@ export function ManageStoreUsers({ storeId, users }: { storeId: string, users: a
     const res = await createManager(formData)
     setLoading(false)
     if (res?.error) {
-      alert(res.error)
+      toast.error(res.error)
     } else {
       setIsOpen(false)
+      toast.success('Akun kasir berhasil ditambahkan')
     }
   }
 
   async function handleDelete(id: string) {
     if (confirm('Yakin ingin menghapus akun kasir ini?')) {
       await deleteManager(id, storeId)
+      toast.success('Akun kasir berhasil dihapus')
     }
   }
 

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createMasterProduct } from '@/lib/actions/product'
 import { useRouter } from 'next/navigation'
 import { X, ImageIcon } from 'lucide-react'
+import { toast } from 'sonner'
 
 export function AddMasterProductModal() {
   const [isOpen, setIsOpen] = useState(false)
@@ -33,11 +34,11 @@ export function AddMasterProductModal() {
       if (data.success) {
         setImageUrl(data.url)
       } else {
-        alert('Gagal mengupload gambar')
+        toast.error('Gagal mengupload gambar')
         setImagePreview('')
       }
     } catch {
-      alert('Terjadi kesalahan saat upload')
+      toast.error('Terjadi kesalahan saat upload')
       setImagePreview('')
     } finally {
       setUploading(false)
@@ -53,9 +54,10 @@ export function AddMasterProductModal() {
     const res = await createMasterProduct(formData)
     setLoading(false)
     if (res?.error) {
-      alert(res.error)
+      toast.error(res.error)
     } else {
       handleClose()
+      toast.success('Produk master berhasil ditambahkan')
       router.refresh()
     }
   }

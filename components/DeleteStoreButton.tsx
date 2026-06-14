@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Trash2, AlertTriangle, X } from 'lucide-react'
 import { deleteStore } from '@/lib/actions/store'
+import { toast } from 'sonner'
 
 export function DeleteStoreButton({ storeId, storeName }: { storeId: string, storeName: string }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -19,9 +20,10 @@ export function DeleteStoreButton({ storeId, storeName }: { storeId: string, sto
     setLoading(false)
 
     if (res?.error) {
-      alert(res.error)
+      toast.error(res.error)
     } else {
       setIsOpen(false)
+      toast.success('Cabang berhasil dihapus')
       router.push('/stores')
     }
   }

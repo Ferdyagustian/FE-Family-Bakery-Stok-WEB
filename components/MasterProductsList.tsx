@@ -6,6 +6,7 @@ import { updateBulkPrices, deleteMasterProduct } from '@/lib/actions/product'
 import { EditMasterProductModal } from '@/components/EditMasterProductModal'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 export function MasterProductsList({ products }: { products: any[] }) {
   const [isEditMode, setIsEditMode] = useState(false)
@@ -36,9 +37,10 @@ export function MasterProductsList({ products }: { products: any[] }) {
     const res = await updateBulkPrices(items)
     setLoading(false)
     if (res?.error) {
-      alert(res.error)
+      toast.error(res.error)
     } else {
       setIsEditMode(false)
+      toast.success('Perubahan harga berhasil disimpan')
       router.refresh()
     }
   }
@@ -49,8 +51,9 @@ export function MasterProductsList({ products }: { products: any[] }) {
       const res = await deleteMasterProduct(id)
       setLoading(false)
       if (res?.error) {
-        alert(res.error)
+        toast.error(res.error)
       } else {
+        toast.success(`Produk ${name} berhasil dihapus`)
         router.refresh()
       }
     }

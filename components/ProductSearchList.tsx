@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { ProductCard } from '@/components/ProductCard'
 import { Package, Search, LayoutGrid, List, ShoppingCart, X, Plus, Minus, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { recordBulkSales } from '@/lib/actions/product'
 
 export function ProductSearchList({ products, storeId }: { products: any[], storeId: string }) {
@@ -50,11 +51,11 @@ export function ProductSearchList({ products, storeId }: { products: any[], stor
       const items = cart.map(item => ({ productId: item.product.id, quantity: item.quantity }))
       const res = await recordBulkSales(items, storeId)
       if (res?.error) {
-        alert(res.error)
+        toast.error(res.error)
       } else {
         setCart([])
         setIsCartOpen(false)
-        alert('Transaksi berhasil dicatat!')
+        toast.success('Transaksi berhasil dicatat!')
       }
     })
   }

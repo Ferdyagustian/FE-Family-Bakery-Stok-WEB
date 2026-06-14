@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { adjustAllPrices } from '@/lib/actions/product'
 import { useRouter } from 'next/navigation'
 import { X, TrendingUp, TrendingDown, Percent, DollarSign } from 'lucide-react'
+import { toast } from 'sonner'
 
 export function BulkPriceAdjustModal() {
   const [isOpen, setIsOpen] = useState(false)
@@ -17,7 +18,7 @@ export function BulkPriceAdjustModal() {
     e.preventDefault()
     const numValue = parseFloat(value)
     if (isNaN(numValue) || numValue <= 0) {
-      alert('Masukkan nilai yang valid')
+      toast.error('Masukkan nilai yang valid')
       return
     }
 
@@ -26,10 +27,11 @@ export function BulkPriceAdjustModal() {
     setLoading(false)
 
     if (res?.error) {
-      alert(res.error)
+      toast.error(res.error)
     } else {
       setIsOpen(false)
       setValue('')
+      toast.success('Harga massal berhasil disesuaikan')
       router.refresh()
     }
   }

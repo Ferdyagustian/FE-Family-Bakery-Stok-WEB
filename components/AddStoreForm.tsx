@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createStore } from '@/lib/actions/store'
 import { useRouter } from 'next/navigation'
 import { X, Plus } from 'lucide-react'
+import { toast } from 'sonner'
 
 export function AddStoreForm() {
   const [isOpen, setIsOpen] = useState(false)
@@ -17,9 +18,10 @@ export function AddStoreForm() {
     const res = await createStore(formData)
     setLoading(false)
     if (res?.error) {
-      alert(res.error)
+      toast.error(res.error)
     } else {
       setIsOpen(false)
+      toast.success('Cabang baru berhasil ditambahkan')
       router.refresh()
     }
   }

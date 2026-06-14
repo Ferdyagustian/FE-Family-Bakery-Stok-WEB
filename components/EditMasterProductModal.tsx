@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { updateProduct } from '@/lib/actions/product'
 import { useRouter } from 'next/navigation'
 import { X, ImageIcon, Pencil } from 'lucide-react'
+import { toast } from 'sonner'
 
 type ProductData = {
   id: string
@@ -47,11 +48,11 @@ export function EditMasterProductModal({ product }: { product: ProductData }) {
       if (data.success) {
         setImageUrl(data.url)
       } else {
-        alert('Gagal mengupload gambar')
+        toast.error('Gagal mengupload gambar')
         setImagePreview(product.imageUrl || '')
       }
     } catch {
-      alert('Terjadi kesalahan saat upload')
+      toast.error('Terjadi kesalahan saat upload')
       setImagePreview(product.imageUrl || '')
     } finally {
       setUploading(false)
@@ -68,9 +69,10 @@ export function EditMasterProductModal({ product }: { product: ProductData }) {
     const res = await updateProduct(formData)
     setLoading(false)
     if (res?.error) {
-      alert(res.error)
+      toast.error(res.error)
     } else {
       handleClose()
+      toast.success('Produk berhasil diperbarui')
       router.refresh()
     }
   }

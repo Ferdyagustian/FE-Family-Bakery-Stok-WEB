@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { clearAuditLogs } from '@/lib/actions/audit'
+import { toast } from 'sonner'
 
 export function ClearLogsButton() {
   const [isPending, setIsPending] = useState(false)
@@ -14,9 +15,9 @@ export function ClearLogsButton() {
     setIsPending(true)
     const res = await clearAuditLogs(days)
     if (res?.error) {
-      alert(res.error)
+      toast.error(res.error)
     } else {
-      alert(`Berhasil menghapus ${res?.count} log.`)
+      toast.success(`Berhasil menghapus ${res?.count} log.`)
     }
     setIsPending(false)
   }

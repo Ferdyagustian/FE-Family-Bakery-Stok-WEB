@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { addStoreProduct } from '@/lib/actions/product'
 import { useRouter } from 'next/navigation'
 import { X, Package } from 'lucide-react'
+import { toast } from 'sonner'
 
 export function AddProductModal({ storeId, masterProducts = [] }: { storeId: string, masterProducts?: any[] }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -23,9 +24,10 @@ export function AddProductModal({ storeId, masterProducts = [] }: { storeId: str
     const res = await addStoreProduct(formData)
     setLoading(false)
     if (res?.error) {
-      alert(res.error)
+      toast.error(res.error)
     } else {
       handleClose()
+      toast.success('Produk berhasil ditambahkan ke cabang')
       router.refresh()
     }
   }
