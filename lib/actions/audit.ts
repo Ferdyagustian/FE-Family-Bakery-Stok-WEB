@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { getSession } from '@/lib/session'
+import { getSession , getSessionToken} from '@/lib/session'
 import { ENV } from '@/lib/env'
 
 const API_BASE = ENV.API_BASE
@@ -13,7 +13,9 @@ export async function clearAuditLogs(daysToKeep: number) {
   }
 
   try {
+    const token = await getSessionToken();
     const res = await fetch(`${API_BASE}/audits/clear?daysToKeep=${daysToKeep}`, {
+      headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
       method: 'DELETE',
     })
 

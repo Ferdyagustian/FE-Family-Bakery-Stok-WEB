@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { getSession } from '@/lib/session'
+import { getSession , getSessionToken} from '@/lib/session'
 import { assertStoreAccess } from '@/lib/actions/auth-guard'
 import { ENV } from '@/lib/env'
 
@@ -26,9 +26,12 @@ export async function createMasterProduct(formData: FormData) {
   }
 
   try {
+    const token = await getSessionToken();
     const res = await fetch(`${API_BASE}/products/`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
       body: JSON.stringify({ name, description, imageUrl, price })
     })
 
@@ -61,9 +64,12 @@ export async function addStoreProduct(formData: FormData) {
   }
 
   try {
+    const token = await getSessionToken();
     const res = await fetch(`${API_BASE}/products/store-product`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
       body: JSON.stringify({ storeId, productId, stockQuantity })
     })
 
@@ -98,9 +104,12 @@ export async function updateProduct(formData: FormData) {
   }
 
   try {
+    const token = await getSessionToken();
     const res = await fetch(`${API_BASE}/products/${productId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
       body: JSON.stringify({ name, description, imageUrl, price, discount })
     })
 
@@ -130,9 +139,12 @@ export async function recordSale(productId: string, storeId: string, quantity: n
   }
 
   try {
+    const token = await getSessionToken();
     const res = await fetch(`${API_BASE}/products/${productId}/record-sale`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
       body: JSON.stringify({ storeId, quantity })
     })
 
@@ -153,7 +165,9 @@ export async function deleteMasterProduct(productId: string) {
   if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' }
 
   try {
+    const token = await getSessionToken();
     const res = await fetch(`${API_BASE}/products/${productId}`, {
+      headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
       method: 'DELETE',
     })
 
@@ -166,6 +180,28 @@ export async function deleteMasterProduct(productId: string) {
     return { success: true }
   } catch (error) {
     return { error: 'Gagal menghapus produk master' }
+  }
+}
+
+export async function removeStoreProduct(storeId: string, productId: string) {
+  const user = await getSessionUser()
+  if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' }
+
+  try {
+    const token = await getSessionToken();
+    const res = await fetch(`${API_BASE}/products/store-product/${storeId}/${productId}`, {
+      headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+      method: 'DELETE',
+    })
+
+    if (!res.ok) {
+      return { error: 'Gagal menghapus produk dari cabang' }
+    }
+
+    revalidatePath(`/stores/${storeId}`)
+    return { success: true }
+  } catch (error) {
+    return { error: 'Gagal menghapus produk dari cabang' }
   }
 }
 
@@ -183,9 +219,12 @@ export async function bulkRestockProducts(
   if (validRestocks.length === 0) return { error: 'Tidak ada produk yang diisi jumlah restoknya' }
 
   try {
+    const token = await getSessionToken();
     const res = await fetch(`${API_BASE}/products/bulk-restock`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
       body: JSON.stringify({ storeId, restocks: validRestocks })
     })
 
@@ -215,9 +254,12 @@ export async function recordBulkSales(
   if (validItems.length === 0) return { error: 'Keranjang kosong atau data tidak valid' }
 
   try {
+    const token = await getSessionToken();
     const res = await fetch(`${API_BASE}/products/bulk-sales`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
       body: JSON.stringify({ storeId, items: validItems })
     })
 
@@ -241,9 +283,12 @@ export async function updateBulkPrices(items: { id: string, price: number }[]) {
   if (validItems.length === 0) return { error: 'Tidak ada data valid untuk disimpan' }
 
   try {
+    const token = await getSessionToken();
     const res = await fetch(`${API_BASE}/products/bulk-prices`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
       body: JSON.stringify({ items: validItems })
     })
 
@@ -263,9 +308,12 @@ export async function adjustAllPrices(type: 'increase' | 'decrease', amountType:
   if (isNaN(value) || value <= 0) return { error: 'Nilai harus lebih dari 0' }
 
   try {
+    const token = await getSessionToken();
     const res = await fetch(`${API_BASE}/products/adjust-all-prices`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
       body: JSON.stringify({ type, amountType, value })
     })
 

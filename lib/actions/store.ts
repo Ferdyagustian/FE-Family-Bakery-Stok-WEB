@@ -2,7 +2,7 @@
 
 import prisma from '@/lib/db'
 import { revalidatePath } from 'next/cache'
-import { getSession } from '@/lib/session'
+import { getSession , getSessionToken} from '@/lib/session'
 import { writeAuditLog } from '@/lib/audit'
 import { ENV } from '@/lib/env'
 
@@ -23,9 +23,12 @@ export async function createStore(formData: FormData) {
   if (!name) return { error: 'Nama toko wajib diisi' }
 
   try {
+    const token = await getSessionToken();
     const res = await fetch(`${API_BASE}/stores/`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
       body: JSON.stringify({ name, location })
     })
 
@@ -51,9 +54,12 @@ export async function updateStore(id: string, formData: FormData) {
   if (!name) return { error: 'Nama toko wajib diisi' }
 
   try {
+    const token = await getSessionToken();
     const res = await fetch(`${API_BASE}/stores/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
       body: JSON.stringify({ name, location })
     })
 
@@ -74,7 +80,9 @@ export async function deleteStore(id: string) {
   if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' }
 
   try {
+    const token = await getSessionToken();
     const res = await fetch(`${API_BASE}/stores/${id}`, {
+      headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
       method: 'DELETE',
     })
 

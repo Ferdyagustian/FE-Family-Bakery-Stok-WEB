@@ -1,0 +1,7 @@
+# Linter Ignores
+# Ignore external plugins and standalone scripts that are not part of Next.js app build
+
+/new_skills/
+/scripts/
+*.js
+/proxy.ts

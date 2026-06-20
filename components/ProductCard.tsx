@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { Package, Tag, ShoppingCart, Minus, Plus, Percent, CheckCircle2 } from 'lucide-react'
+import { useState, useTransition } from 'react'
+import { Package, Tag, ShoppingCart, Minus, Plus, Percent, CheckCircle2, Trash2, AlertTriangle } from 'lucide-react'
 import Image from 'next/image'
+import { removeStoreProduct } from '@/lib/actions/product'
+import { toast } from 'sonner'
 
 // ── Product Card ───────────────────────────────────────────────────
 export function ProductCard({ 
@@ -10,16 +12,20 @@ export function ProductCard({
   storeId, 
   viewMode = 'grid',
   onAddToCart,
-  cartQty = 0
+  cartQty = 0,
+  isAdmin = false
 }: { 
   product: any, 
   storeId: string, 
   viewMode?: 'grid' | 'list',
   onAddToCart?: (product: any, qty: number) => void,
-  cartQty?: number
+  cartQty?: number,
+  isAdmin?: boolean
 }) {
   const [saleQty, setSaleQty] = useState<number | ''>(1)
   const [saleSuccess, setSaleSuccess] = useState(false)
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false)
+  const [isPending, startTransition] = useTransition()
 
   // ── Optimistic stock update ────────────────────────────────────
   // Available stock accounts for items already in the cart
@@ -42,7 +48,17 @@ export function ProductCard({
     }
   }
 
-  // Removed delete functionality as it is now strictly managed by Admin
+  const handleDelete = () => {
+    startTransition(async () => {
+      const res = await removeStoreProduct(storeId, product.id)
+      if (res?.error) {
+        toast.error(res.error)
+      } else {
+        toast.success('Produk berhasil dihapus dari cabang')
+        setShowConfirmDelete(false)
+      }
+    })
+  }
 
   const isOutOfStock = availableStock === 0
   const isLowStock = availableStock > 0 && availableStock < 10
@@ -53,7 +69,48 @@ export function ProductCard({
 
   return (
     <>
-      <div className={`bg-white dark:bg-gray-900 rounded-xl border flex ${viewMode === 'list' ? 'flex-col sm:flex-row items-center p-3 gap-4' : 'flex-col h-full'} overflow-hidden group hover:border-gray-300 dark:hover:border-gray-700 transition-colors duration-150 border-gray-200 dark:border-gray-800 shadow-sm`}>
+      <div className={`relative bg-white dark:bg-gray-900 rounded-xl border flex ${viewMode === 'list' ? 'flex-col sm:flex-row items-center p-3 gap-4' : 'flex-col h-full'} overflow-hidden group hover:border-gray-300 dark:hover:border-gray-700 transition-colors duration-150 border-gray-200 dark:border-gray-800 shadow-sm`}>
+        
+        {/* Delete Confirmation Overlay */}
+        {showConfirmDelete && (
+          <div className="absolute inset-0 bg-white/95 dark:bg-gray-900/95 z-20 flex flex-col items-center justify-center p-2 sm:p-4 text-center animate-in fade-in zoom-in duration-200 overflow-y-auto">
+            <div className="hidden sm:flex w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-red-100 dark:bg-red-900/30 items-center justify-center mb-2 sm:mb-3 flex-shrink-0">
+              <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 dark:text-red-400" />
+            </div>
+            <h4 className="font-bold text-sm sm:text-base text-gray-900 dark:text-white mb-1">Hapus Produk?</h4>
+            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mb-3 px-1 sm:px-2 leading-tight">
+              Yakin hapus <strong>{product.name}</strong>? Riwayat penjualan tidak hilang.
+            </p>
+            <div className="flex gap-2 w-full max-w-[200px] mt-auto sm:mt-0">
+              <button 
+                onClick={() => setShowConfirmDelete(false)}
+                disabled={isPending}
+                className="flex-1 px-2 py-1.5 sm:px-3 sm:py-2 text-[10px] sm:text-xs font-semibold rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={handleDelete}
+                disabled={isPending}
+                className="flex-1 px-2 py-1.5 sm:px-3 sm:py-2 text-[10px] sm:text-xs font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors shadow-sm shadow-red-600/20 disabled:opacity-50 flex items-center justify-center"
+              >
+                {isPending ? <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : 'Hapus'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Button (Admin Only) */}
+        {isAdmin && !showConfirmDelete && (
+          <button 
+            onClick={(e) => { e.preventDefault(); setShowConfirmDelete(true); }}
+            className="absolute top-2 right-2 p-2 rounded-lg bg-white/90 dark:bg-gray-900/90 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-600 shadow-sm opacity-0 group-hover:opacity-100 transition-all z-10 border border-gray-100 dark:border-gray-800"
+            title="Hapus Produk dari Cabang"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
+
         {/* Product Image */}
         {viewMode === 'grid' && (
           product.imageUrl ? (

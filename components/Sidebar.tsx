@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Store as StoreIcon, FileSpreadsheet, LogOut, X, ClipboardList, Package } from 'lucide-react'
+import { LayoutDashboard, Store as StoreIcon, FileSpreadsheet, LogOut, X, ClipboardList, Package, BrainCircuit } from 'lucide-react'
 import { logoutAction } from '@/lib/actions/auth'
 
 interface SidebarProps {
@@ -20,6 +20,7 @@ const navLinks = [
 const adminOnlyLinks = [
   { href: '/products', label: 'Katalog Produk', icon: Package },
   { href: '/audit', label: 'Riwayat Aktivitas', icon: ClipboardList },
+  { href: '/forecast', label: 'Prediksi AI', icon: BrainCircuit },
 ]
 
 export function Sidebar({ onClose, showCloseButton, user }: SidebarProps) {

@@ -6,7 +6,7 @@ import { Package, Search, LayoutGrid, List, ShoppingCart, X, Plus, Minus, Trash2
 import { toast } from 'sonner'
 import { recordBulkSales } from '@/lib/actions/product'
 
-export function ProductSearchList({ products, storeId }: { products: any[], storeId: string }) {
+export function ProductSearchList({ products, storeId, isAdmin = false }: { products: any[], storeId: string, isAdmin?: boolean }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
@@ -130,6 +130,7 @@ export function ProductSearchList({ products, storeId }: { products: any[], stor
               viewMode={viewMode} 
               onAddToCart={handleAddToCart}
               cartQty={cartItem?.quantity || 0}
+              isAdmin={isAdmin}
             />
           )
         })}

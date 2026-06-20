@@ -1,6 +1,6 @@
 'use server'
 
-import { getSession } from '@/lib/session'
+import { getSession , getSessionToken} from '@/lib/session'
 import { revalidatePath } from 'next/cache'
 import { ENV } from '@/lib/env'
 
@@ -20,9 +20,12 @@ export async function createManager(formData: FormData) {
   }
 
   try {
+    const token = await getSessionToken();
     const res = await fetch(`${API_BASE}/users/`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
       body: JSON.stringify({ username, password, name, storeId })
     })
 
@@ -43,7 +46,9 @@ export async function deleteManager(id: string, storeId: string) {
   if (!session || session.user.role !== 'ADMIN') return { error: 'Unauthorized' }
 
   try {
+    const token = await getSessionToken();
     const res = await fetch(`${API_BASE}/users/${id}`, {
+      headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
       method: 'DELETE',
     })
 
