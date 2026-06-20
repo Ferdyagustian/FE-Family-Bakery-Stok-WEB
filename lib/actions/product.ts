@@ -1,10 +1,11 @@
 'use server'
 
-import prisma from '@/lib/db'
 import { revalidatePath } from 'next/cache'
 import { getSession } from '@/lib/session'
-import { writeAuditLog } from '@/lib/audit'
 import { assertStoreAccess } from '@/lib/actions/auth-guard'
+import { ENV } from '@/lib/env'
+
+const API_BASE = ENV.API_BASE
 
 async function getSessionUser() {
   const session = await getSession()
@@ -25,44 +26,21 @@ export async function createMasterProduct(formData: FormData) {
   }
 
   try {
-    const existing = await prisma.product.findFirst({
-      where: { name: { equals: name, mode: 'insensitive' } }
+    const res = await fetch(`${API_BASE}/products/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, description, imageUrl, price })
     })
 
-    if (existing) {
-      return { error: 'Produk dengan nama ini sudah ada di Master Katalog' }
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => null)
+      return { error: errorData?.detail || 'Gagal menambah produk master' }
     }
-
-    const product = await prisma.product.create({
-      data: { name, description, imageUrl, price }
-    })
-
-    // Auto-populate the new master product into all existing stores with 0 stock
-    const stores = await prisma.store.findMany({ select: { id: true } })
-    if (stores.length > 0) {
-      await prisma.storeProduct.createMany({
-        data: stores.map(s => ({
-          storeId: s.id,
-          productId: product.id,
-          stockQuantity: 0
-        }))
-      })
-    }
-
-    await writeAuditLog({
-      userId: user.id,
-      username: user.username,
-      action: 'CREATE_PRODUCT',
-      entityType: 'Product',
-      entityId: product.id,
-      entityName: name,
-      detail: { price },
-    })
+    const product = await res.json()
 
     revalidatePath('/products')
     return { success: true, product }
   } catch (error) {
-    console.error(error)
     return { error: 'Gagal menambah produk master' }
   }
 }
@@ -72,9 +50,8 @@ export async function addStoreProduct(formData: FormData) {
   const productId = formData.get('productId') as string
   const stockQuantity = parseInt(formData.get('stockQuantity') as string)
 
-  let user;
   try {
-    user = await assertStoreAccess(storeId);
+    await assertStoreAccess(storeId);
   } catch (err) {
     return { error: 'Unauthorized or Forbidden' };
   }
@@ -84,38 +61,19 @@ export async function addStoreProduct(formData: FormData) {
   }
 
   try {
-    const product = await prisma.product.findUnique({ where: { id: productId } })
-    if (!product) return { error: 'Produk Master tidak ditemukan' }
-
-    await prisma.storeProduct.upsert({
-      where: {
-        storeId_productId: { storeId, productId }
-      },
-      update: {
-        stockQuantity: { increment: stockQuantity }
-      },
-      create: {
-        storeId,
-        productId,
-        stockQuantity
-      }
+    const res = await fetch(`${API_BASE}/products/store-product`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ storeId, productId, stockQuantity })
     })
 
-    await writeAuditLog({
-      userId: user.id,
-      username: user.username,
-      action: 'RESTOCK_PRODUCT', // Or you could use a new action type like ADD_STORE_PRODUCT
-      entityType: 'StoreProduct',
-      entityId: productId,
-      entityName: product.name,
-      storeId,
-      detail: { stockAdded: stockQuantity },
-    })
+    if (!res.ok) {
+      return { error: 'Gagal menambah produk ke cabang' }
+    }
 
     revalidatePath(`/stores/${storeId}`)
-    return { success: true, product }
+    return { success: true }
   } catch (error) {
-    console.error(error)
     return { error: 'Gagal menambah produk ke cabang' }
   }
 }
@@ -140,38 +98,29 @@ export async function updateProduct(formData: FormData) {
   }
 
   try {
-    await prisma.product.update({
-      where: { id: productId },
-      data: { name, description, imageUrl, price, discount }
+    const res = await fetch(`${API_BASE}/products/${productId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, description, imageUrl, price, discount })
     })
 
-    await writeAuditLog({
-      userId: user.id,
-      username: user.username,
-      action: 'UPDATE_PRODUCT',
-      entityType: 'Product',
-      entityId: productId,
-      entityName: name,
-      storeId: storeId || undefined,
-      detail: { price, discount },
-    })
-
-    if (storeId) {
-      revalidatePath(`/stores/${storeId}`)
+    if (!res.ok) {
+      return { error: 'Gagal memperbarui produk' }
     }
+
+    if (storeId) revalidatePath(`/stores/${storeId}`)
     revalidatePath('/products')
     revalidatePath('/', 'layout')
     
     return { success: true }
   } catch (error: any) {
-    return { error: error?.message || 'Gagal memperbarui produk' }
+    return { error: 'Gagal memperbarui produk' }
   }
 }
 
 export async function recordSale(productId: string, storeId: string, quantity: number) {
-  let user;
   try {
-    user = await assertStoreAccess(storeId);
+    await assertStoreAccess(storeId);
   } catch (err) {
     return { error: 'Unauthorized or Forbidden' };
   }
@@ -181,61 +130,20 @@ export async function recordSale(productId: string, storeId: string, quantity: n
   }
 
   try {
-    let productName = ''
-    let totalAmount = 0
-
-    await prisma.$transaction(async (tx) => {
-      const product = await tx.product.findUnique({
-        where: { id: productId }
-      })
-      if (!product) throw new Error('PRODUCT_NOT_FOUND')
-      
-      productName = product.name
-      const discountPct = (product as any).discount || 0
-      const effectivePrice = product.price * (1 - discountPct / 100)
-      totalAmount = effectivePrice * quantity
-      const profitAmount = totalAmount
-
-      const updated = await tx.storeProduct.updateMany({
-        where: {
-          productId,
-          storeId,
-          stockQuantity: { gte: quantity }
-        },
-        data: { stockQuantity: { decrement: quantity } }
-      })
-
-      if (updated.count === 0) {
-        throw new Error('INSUFFICIENT_STOCK')
-      }
-
-      await tx.sale.create({
-        data: {
-          storeId,
-          productId,
-          quantitySold: quantity,
-          totalAmount,
-          profitAmount
-        }
-      })
+    const res = await fetch(`${API_BASE}/products/${productId}/record-sale`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ storeId, quantity })
     })
 
-    await writeAuditLog({
-      userId: user.id,
-      username: user.username,
-      action: 'RECORD_SALE',
-      entityType: 'Sale',
-      entityId: productId,
-      entityName: productName,
-      storeId,
-      detail: { quantity, totalAmount },
-    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => null)
+      return { error: err?.detail || 'Gagal mencatat penjualan' }
+    }
 
     revalidatePath(`/stores/${storeId}`)
     return { success: true }
   } catch (error: any) {
-    if (error?.message === 'PRODUCT_NOT_FOUND') return { error: 'Produk tidak ditemukan' }
-    if (error?.message === 'INSUFFICIENT_STOCK') return { error: 'Stok tidak cukup atau sudah habis terjual' }
     return { error: 'Gagal mencatat penjualan' }
   }
 }
@@ -245,27 +153,15 @@ export async function deleteMasterProduct(productId: string) {
   if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' }
 
   try {
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-      select: { name: true }
+    const res = await fetch(`${API_BASE}/products/${productId}`, {
+      method: 'DELETE',
     })
 
-    // Ini akan menghapus Master Product dan cascade menghapus semua StoreProduct & Sale
-    await prisma.product.delete({
-      where: { id: productId }
-    })
-
-    await writeAuditLog({
-      userId: user.id,
-      username: user.username,
-      action: 'DELETE_MASTER_PRODUCT',
-      entityType: 'Product',
-      entityId: productId,
-      entityName: product?.name ?? productId,
-    })
+    if (!res.ok) {
+      return { error: 'Gagal menghapus produk master' }
+    }
 
     revalidatePath('/products')
-    // Meminta semua halaman toko di-revalidate karena produk hilang
     revalidatePath('/', 'layout')
     return { success: true }
   } catch (error) {
@@ -277,9 +173,8 @@ export async function bulkRestockProducts(
   restocks: { productId: string; qty: number; name?: string }[],
   storeId: string
 ) {
-  let user;
   try {
-    user = await assertStoreAccess(storeId);
+    await assertStoreAccess(storeId);
   } catch (err) {
     return { error: 'Unauthorized or Forbidden' };
   }
@@ -288,23 +183,15 @@ export async function bulkRestockProducts(
   if (validRestocks.length === 0) return { error: 'Tidak ada produk yang diisi jumlah restoknya' }
 
   try {
-    await prisma.$transaction(
-      validRestocks.map((r) =>
-        prisma.storeProduct.updateMany({
-          where: { productId: r.productId, storeId },
-          data: { stockQuantity: { increment: r.qty } }
-        })
-      )
-    )
-
-    await writeAuditLog({
-      userId: user.id,
-      username: user.username,
-      action: 'RESTOCK_PRODUCT',
-      entityType: 'StoreProduct',
-      storeId,
-      detail: { items: validRestocks.map(r => ({ productId: r.productId, name: r.name, qty: r.qty })) },
+    const res = await fetch(`${API_BASE}/products/bulk-restock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ storeId, restocks: validRestocks })
     })
+
+    if (!res.ok) {
+      return { error: 'Gagal menyimpan restok. Silakan coba lagi.' }
+    }
 
     revalidatePath(`/stores/${storeId}`)
     revalidatePath(`/stores/${storeId}/restock`)
@@ -318,9 +205,8 @@ export async function recordBulkSales(
   items: { productId: string; quantity: number }[],
   storeId: string
 ) {
-  let user;
   try {
-    user = await assertStoreAccess(storeId);
+    await assertStoreAccess(storeId);
   } catch (err) {
     return { error: 'Unauthorized or Forbidden' };
   }
@@ -329,64 +215,20 @@ export async function recordBulkSales(
   if (validItems.length === 0) return { error: 'Keranjang kosong atau data tidak valid' }
 
   try {
-    let totalAll = 0
-    const soldItems: { name: string; qty: number }[] = []
-
-    await prisma.$transaction(async (tx) => {
-      for (const item of validItems) {
-        const product = await tx.product.findUnique({
-          where: { id: item.productId }
-        })
-
-        if (!product) throw new Error(`PRODUCT_NOT_FOUND:${item.productId}`)
-
-        const discountPct = (product as any).discount || 0
-        const effectivePrice = product.price * (1 - discountPct / 100)
-        const totalAmount = effectivePrice * item.quantity
-        const profitAmount = totalAmount
-        totalAll += totalAmount
-        soldItems.push({ name: product.name, qty: item.quantity })
-
-        const updated = await tx.storeProduct.updateMany({
-          where: {
-            productId: item.productId,
-            storeId,
-            stockQuantity: { gte: item.quantity }
-          },
-          data: { stockQuantity: { decrement: item.quantity } }
-        })
-
-        if (updated.count === 0) throw new Error(`INSUFFICIENT_STOCK:${product.name}`)
-
-        await tx.sale.create({
-          data: {
-            storeId,
-            productId: item.productId,
-            quantitySold: item.quantity,
-            totalAmount,
-            profitAmount
-          }
-        })
-      }
+    const res = await fetch(`${API_BASE}/products/bulk-sales`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ storeId, items: validItems })
     })
 
-    await writeAuditLog({
-      userId: user.id,
-      username: user.username,
-      action: 'RECORD_SALE',
-      entityType: 'Sale',
-      storeId,
-      detail: { items: soldItems, total: totalAll },
-    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => null)
+      return { error: err?.detail || 'Gagal memproses transaksi kasir' }
+    }
 
     revalidatePath(`/stores/${storeId}`)
     return { success: true }
   } catch (error: any) {
-    if (error?.message?.startsWith('PRODUCT_NOT_FOUND')) return { error: 'Ada produk yang tidak ditemukan di database' }
-    if (error?.message?.startsWith('INSUFFICIENT_STOCK')) {
-      const productName = error.message.split(':')[1]
-      return { error: `Stok tidak cukup untuk produk: ${productName}` }
-    }
     return { error: 'Gagal memproses transaksi kasir' }
   }
 }
@@ -399,22 +241,13 @@ export async function updateBulkPrices(items: { id: string, price: number }[]) {
   if (validItems.length === 0) return { error: 'Tidak ada data valid untuk disimpan' }
 
   try {
-    await prisma.$transaction(
-      validItems.map(item => 
-        prisma.product.update({
-          where: { id: item.id },
-          data: { price: item.price }
-        })
-      )
-    )
-
-    await writeAuditLog({
-      userId: user.id,
-      username: user.username,
-      action: 'UPDATE_BULK_PRICES',
-      entityType: 'Product',
-      detail: { count: validItems.length },
+    const res = await fetch(`${API_BASE}/products/bulk-prices`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: validItems })
     })
+
+    if (!res.ok) return { error: 'Gagal menyimpan perubahan harga secara massal' }
 
     revalidatePath('/products')
     revalidatePath('/', 'layout')
@@ -430,32 +263,13 @@ export async function adjustAllPrices(type: 'increase' | 'decrease', amountType:
   if (isNaN(value) || value <= 0) return { error: 'Nilai harus lebih dari 0' }
 
   try {
-    const products = await prisma.product.findMany({ select: { id: true, price: true } })
-    
-    await prisma.$transaction(
-      products.map(product => {
-        let newPrice = product.price
-        if (amountType === 'nominal') {
-          newPrice = type === 'increase' ? product.price + value : Math.max(0, product.price - value)
-        } else if (amountType === 'percent') {
-          const change = product.price * (value / 100)
-          newPrice = type === 'increase' ? product.price + change : Math.max(0, product.price - change)
-        }
-
-        return prisma.product.update({
-          where: { id: product.id },
-          data: { price: Math.round(newPrice) }
-        })
-      })
-    )
-
-    await writeAuditLog({
-      userId: user.id,
-      username: user.username,
-      action: 'ADJUST_ALL_PRICES',
-      entityType: 'Product',
-      detail: { type, amountType, value },
+    const res = await fetch(`${API_BASE}/products/adjust-all-prices`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, amountType, value })
     })
+
+    if (!res.ok) return { error: 'Gagal menyesuaikan harga secara massal' }
 
     revalidatePath('/products')
     revalidatePath('/', 'layout')

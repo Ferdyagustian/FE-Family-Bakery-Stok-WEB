@@ -4,6 +4,9 @@ import prisma from '@/lib/db'
 import { revalidatePath } from 'next/cache'
 import { getSession } from '@/lib/session'
 import { writeAuditLog } from '@/lib/audit'
+import { ENV } from '@/lib/env'
+
+const API_BASE = ENV.API_BASE
 
 async function getSessionUser() {
   const session = await getSession()
@@ -20,31 +23,16 @@ export async function createStore(formData: FormData) {
   if (!name) return { error: 'Nama toko wajib diisi' }
 
   try {
-    const store = await prisma.store.create({
-      data: { name, location }
+    const res = await fetch(`${API_BASE}/stores/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, location })
     })
 
-    // Auto-populate all master products into the new store with 0 stock
-    const products = await prisma.product.findMany({ select: { id: true } })
-    if (products.length > 0) {
-      await prisma.storeProduct.createMany({
-        data: products.map(p => ({
-          storeId: store.id,
-          productId: p.id,
-          stockQuantity: 0
-        }))
-      })
+    if (!res.ok) {
+      throw new Error('Failed to create store via API')
     }
-
-    await writeAuditLog({
-      userId: user.id,
-      username: user.username,
-      action: 'CREATE_STORE',
-      entityType: 'Store',
-      entityId: store.id,
-      entityName: name,
-      detail: { location: location || null },
-    })
+    const store = await res.json()
 
     revalidatePath('/stores')
     return { success: true, store }
@@ -63,20 +51,15 @@ export async function updateStore(id: string, formData: FormData) {
   if (!name) return { error: 'Nama toko wajib diisi' }
 
   try {
-    await prisma.store.update({
-      where: { id },
-      data: { name, location }
+    const res = await fetch(`${API_BASE}/stores/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, location })
     })
 
-    await writeAuditLog({
-      userId: user.id,
-      username: user.username,
-      action: 'UPDATE_STORE',
-      entityType: 'Store',
-      entityId: id,
-      entityName: name,
-      detail: { location: location || null },
-    })
+    if (!res.ok) {
+      throw new Error('Failed to update store via API')
+    }
 
     revalidatePath('/stores')
     revalidatePath(`/stores/${id}`)
@@ -91,23 +74,13 @@ export async function deleteStore(id: string) {
   if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' }
 
   try {
-    // Ambil nama toko sebelum dihapus
-    const store = await prisma.store.findUnique({
-      where: { id },
-      select: { name: true }
+    const res = await fetch(`${API_BASE}/stores/${id}`, {
+      method: 'DELETE',
     })
 
-    // Prisma will cascade delete StoreProduct and Sale due to schema definitions
-    await prisma.store.delete({ where: { id } })
-
-    await writeAuditLog({
-      userId: user.id,
-      username: user.username,
-      action: 'DELETE_STORE',
-      entityType: 'Store',
-      entityId: id,
-      entityName: store?.name ?? id,
-    })
+    if (!res.ok) {
+      throw new Error('Failed to delete store via API')
+    }
 
     revalidatePath('/stores')
     revalidatePath('/')

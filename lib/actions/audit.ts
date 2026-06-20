@@ -1,9 +1,10 @@
 'use server'
 
-import prisma from '@/lib/db'
 import { revalidatePath } from 'next/cache'
 import { getSession } from '@/lib/session'
-import { writeAuditLog } from '@/lib/audit'
+import { ENV } from '@/lib/env'
+
+const API_BASE = ENV.API_BASE
 
 export async function clearAuditLogs(daysToKeep: number) {
   const session = await getSession()
@@ -12,33 +13,16 @@ export async function clearAuditLogs(daysToKeep: number) {
   }
 
   try {
-    const cutoffDate = new Date()
-    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep)
-
-    // Jika daysToKeep = 0, hapus semua
-    const result = await prisma.auditLog.deleteMany({
-      where: daysToKeep > 0 ? {
-        createdAt: {
-          lt: cutoffDate,
-        },
-      } : {},
+    const res = await fetch(`${API_BASE}/audits/clear?daysToKeep=${daysToKeep}`, {
+      method: 'DELETE',
     })
 
-    // Catat bahwa admin melakukan pembersihan log (hanya jika tidak menghapus SEMUA)
-    if (daysToKeep > 0) {
-      await writeAuditLog({
-        userId: session.user.id,
-        username: session.user.username,
-        action: 'CLEAR_LOGS',
-        entityType: 'AuditLog',
-        detail: { deletedCount: result.count, olderThanDays: daysToKeep },
-      })
-    }
+    if (!res.ok) return { error: 'Gagal menghapus log dari database' }
 
+    const data = await res.json()
     revalidatePath('/audit')
-    return { success: true, count: result.count }
+    return { success: true, count: data.count }
   } catch (error) {
-    console.error('Failed to clear logs:', error)
     return { error: 'Gagal menghapus log dari database' }
   }
 }
