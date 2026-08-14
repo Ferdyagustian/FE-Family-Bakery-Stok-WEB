@@ -3,32 +3,18 @@
 import { useState, useMemo } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  Legend, ResponsiveContainer, Cell
+  ResponsiveContainer
 } from 'recharts'
 import { Calendar, TrendingUp } from 'lucide-react'
+import { formatCompactRupiah } from '@/lib/format'
 
-
-export const PRODUCT_COLORS = [
-  '#9333ea', // purple
-  '#f59e0b', // amber
-  '#10b981', // emerald
-  '#ef4444', // red
-  '#3b82f6', // blue
-  '#f97316', // orange
-  '#06b6d4', // cyan
-  '#ec4899', // pink
-  '#84cc16', // lime
-  '#8b5cf6', // violet
-  '#14b8a6', // teal
-  '#f43f5e', // rose
-  '#6366f1', // indigo
-  '#eab308', // yellow
-  '#22d3ee', // sky
-  '#a78bfa', // lavender
-  '#34d399', // green
-  '#fb923c', // orange-light
-  '#60a5fa', // blue-light
-  '#c084fc', // purple-light
+export const PALETTE_COLORS = [
+  '#6366f1', // Indigo (Top 1)
+  '#3b82f6', // Blue (Top 2)
+  '#10b981', // Emerald (Top 3)
+  '#f59e0b', // Amber (Top 4)
+  '#ec4899', // Pink (Top 5)
+  '#94a3b8', // Slate (Lainnya)
 ]
 
 type SaleData = {
@@ -38,7 +24,16 @@ type SaleData = {
   store: string
 }
 
-// WIB timezone key
+type ProductSale = {
+  productId: string
+  productName: string
+  storeId: string
+  totalAmount: number
+  profitAmount: number
+  date: string
+}
+
+// WIB timezone helper
 function toWIBDateKey(isoString: string, mode: 'daily' | 'monthly' | 'yearly'): string {
   const wibDate = new Date(new Date(isoString).getTime() + 7 * 3600_000)
   const y = wibDate.getUTCFullYear()
@@ -62,15 +57,6 @@ function formatKeyLabel(key: string, mode: 'daily' | 'monthly' | 'yearly'): stri
   return key
 }
 
-type ProductSale = {
-  productId: string
-  productName: string
-  storeId: string
-  totalAmount: number
-  profitAmount: number
-  date: string
-}
-
 export function SalesChart({
   data,
   stores,
@@ -82,27 +68,29 @@ export function SalesChart({
 }) {
   const [timeFilter, setTimeFilter] = useState<'daily' | 'monthly' | 'yearly'>('daily')
   const [storeFilter, setStoreFilter] = useState<string>('all')
-  const [chartMode, setChartMode] = useState<'stacked' | 'total'>('stacked')
+  const [chartMode, setChartMode] = useState<'total' | 'stacked'>('total')
 
-  // Build per-product color map (stable across re-renders)
-  const productColorMap = useMemo(() => {
-    const map = new Map<string, string>()
-    productSales.forEach(s => {
-      if (!map.has(s.productId)) {
-        map.set(s.productId, PRODUCT_COLORS[map.size % PRODUCT_COLORS.length])
+  // 1. Identifikasi Top 5 Produk Terlaris secara Global untuk Mode Stacked Bersih
+  const { topProducts, topProductIds } = useMemo(() => {
+    let filtered = productSales
+    if (storeFilter !== 'all') filtered = filtered.filter(d => d.storeId === storeFilter)
+
+    const revenueMap = new Map<string, { name: string; revenue: number }>()
+    filtered.forEach(item => {
+      if (!revenueMap.has(item.productId)) {
+        revenueMap.set(item.productId, { name: item.productName, revenue: 0 })
       }
+      revenueMap.get(item.productId)!.revenue += item.totalAmount
     })
-    return map
-  }, [productSales])
 
-  // Unique products list
-  const uniqueProducts = useMemo(() => {
-    const seen = new Map<string, string>()
-    productSales.forEach(s => { if (!seen.has(s.productId)) seen.set(s.productId, s.productName) })
-    return Array.from(seen.entries()).map(([id, name]) => ({ id, name }))
-  }, [productSales])
+    const sorted = Array.from(revenueMap.entries()).sort((a, b) => b[1].revenue - a[1].revenue)
+    const top5 = sorted.slice(0, 5).map(([id, info]) => ({ id, name: info.name }))
+    const topIds = new Set(top5.map(p => p.id))
 
-  // Stacked chart data: per time period, each product is a column
+    return { topProducts: top5, topProductIds: topIds }
+  }, [productSales, storeFilter])
+
+  // 2. Data Stacked (Hanya 5 Top Produk + "Lainnya" agar grafik rapi dan tidak bertumpuk 40 layer)
   const stackedChartData = useMemo(() => {
     let filtered = productSales
     if (storeFilter !== 'all') filtered = filtered.filter(d => d.storeId === storeFilter)
@@ -111,17 +99,28 @@ export function SalesChart({
 
     filtered.forEach(item => {
       const key = toWIBDateKey(item.date, timeFilter)
-      if (!grouped.has(key)) grouped.set(key, {})
+      if (!grouped.has(key)) {
+        grouped.set(key, { other: 0 })
+      }
       const entry = grouped.get(key)!
-      entry[item.productId] = (entry[item.productId] || 0) + item.totalAmount
+
+      if (topProductIds.has(item.productId)) {
+        entry[item.productId] = (entry[item.productId] || 0) + item.totalAmount
+      } else {
+        entry.other = (entry.other || 0) + item.totalAmount
+      }
     })
 
     return Array.from(grouped.entries())
-      .map(([key, products]) => ({ _key: key, name: formatKeyLabel(key, timeFilter), ...products }))
+      .map(([key, products]) => ({
+        _key: key,
+        name: formatKeyLabel(key, timeFilter),
+        ...products
+      }))
       .sort((a, b) => a._key.localeCompare(b._key))
-  }, [productSales, timeFilter, storeFilter])
+  }, [productSales, timeFilter, storeFilter, topProductIds])
 
-  // Aggregated (total) chart data
+  // 3. Data Total (Pendapatan & Profit)
   const totalChartData = useMemo(() => {
     let filteredData = data
     if (storeFilter !== 'all') filteredData = data.filter(d => d.store === storeFilter)
@@ -143,38 +142,63 @@ export function SalesChart({
   const isStacked = chartMode === 'stacked'
   const activeData = isStacked ? stackedChartData : totalChartData
 
+  // Daftar item Stacked aktif (Top 5 + Lainnya)
+  const activeSeries = useMemo(() => {
+    const list = topProducts.map((p, idx) => ({
+      id: p.id,
+      name: p.name,
+      color: PALETTE_COLORS[idx % PALETTE_COLORS.length]
+    }))
+    list.push({
+      id: 'other',
+      name: 'Produk Lainnya',
+      color: '#94a3b8'
+    })
+    return list
+  }, [topProducts])
+
   return (
-    <div className="w-full">
+    <div className="w-full bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 sm:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h3 className="text-lg sm:text-xl font-heading font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-primary-600" />
+            <TrendingUp className="w-5 h-5 text-indigo-600" />
             Grafik Penjualan Per Waktu
           </h3>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Perbandingan pendapatan &amp; keuntungan dari waktu ke waktu</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+            Perbandingan omzet &amp; profit toko dari waktu ke waktu
+          </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {/* Mode toggle */}
-          <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg border border-gray-200 dark:border-gray-700">
-            <button
-              onClick={() => setChartMode('stacked')}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${chartMode === 'stacked' ? 'bg-white dark:bg-gray-900 shadow-sm text-primary-700' : 'text-gray-500 dark:text-gray-400'}`}
-            >
-              Per Produk
-            </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Mode Toggle: Total vs Top Produk */}
+          <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl border border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setChartMode('total')}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${chartMode === 'total' ? 'bg-white dark:bg-gray-900 shadow-sm text-primary-700' : 'text-gray-500 dark:text-gray-400'}`}
+              className={`px-3 py-1 text-xs font-medium rounded-lg transition-all ${
+                chartMode === 'total'
+                  ? 'bg-white dark:bg-gray-900 shadow-sm text-indigo-600 dark:text-indigo-400 font-semibold'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
+              }`}
             >
-              Total
+              Total Omzet
+            </button>
+            <button
+              onClick={() => setChartMode('stacked')}
+              className={`px-3 py-1 text-xs font-medium rounded-lg transition-all ${
+                chartMode === 'stacked'
+                  ? 'bg-white dark:bg-gray-900 shadow-sm text-indigo-600 dark:text-indigo-400 font-semibold'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
+              }`}
+            >
+              Per Top Produk
             </button>
           </div>
 
           {/* Store filter */}
           <select
-            className="h-9 text-sm rounded-lg border border-gray-200 dark:border-gray-700 px-3 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-900"
+            className="h-9 text-xs sm:text-sm rounded-xl border border-gray-200 dark:border-gray-700 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200"
             value={storeFilter}
             onChange={e => setStoreFilter(e.target.value)}
           >
@@ -183,12 +207,16 @@ export function SalesChart({
           </select>
 
           {/* Time filter */}
-          <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl border border-gray-200 dark:border-gray-700">
             {(['daily', 'monthly', 'yearly'] as const).map(f => (
               <button
                 key={f}
                 onClick={() => setTimeFilter(f)}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${timeFilter === f ? 'bg-white dark:bg-gray-900 shadow-sm text-primary-700' : 'text-gray-500 dark:text-gray-400'}`}
+                className={`px-3 py-1 text-xs font-medium rounded-lg transition-all ${
+                  timeFilter === f
+                    ? 'bg-white dark:bg-gray-900 shadow-sm text-indigo-600 dark:text-indigo-400 font-semibold'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
+                }`}
               >
                 {f === 'daily' ? 'Harian' : f === 'monthly' ? 'Bulanan' : 'Tahunan'}
               </button>
@@ -197,61 +225,68 @@ export function SalesChart({
         </div>
       </div>
 
-      {/* Chart */}
-      <div className="h-[380px] w-full">
+      {/* Chart Canvas */}
+      <div className="h-[340px] w-full">
         {activeData.length > 0 ? (
-          <ResponsiveContainer width="100%" height="100%" minHeight={380} minWidth={300}>
-            <BarChart data={activeData} margin={{ top: 10, right: 10, left: 10, bottom: 20 }} barCategoryGap="30%">
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={activeData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} barCategoryGap="25%">
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" opacity={0.6} />
               <XAxis
                 dataKey="name"
                 tick={{ fill: '#6B7280', fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
-                dy={10}
+                dy={8}
               />
               <YAxis
-                tickFormatter={v => `Rp ${Number(v) >= 1000000 ? (Number(v) / 1000000).toFixed(1) + 'jt' : Number(v).toLocaleString()}`}
+                tickFormatter={v => formatCompactRupiah(Number(v), false)}
                 tick={{ fill: '#6B7280', fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
-                width={80}
+                width={75}
               />
               <Tooltip
-                formatter={(value: any, name: any) => [
-                  `Rp ${Number(value).toLocaleString('id-ID')}`,
-                  isStacked
-                    ? (uniqueProducts.find(p => p.id === name)?.name ?? name)
-                    : name === 'revenue' ? 'Pendapatan' : 'Profit',
-                ]}
-                contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '12px' }}
-                cursor={{ fill: 'rgba(147,51,234,0.05)' }}
-              />
-              <Legend
-                wrapperStyle={{ paddingTop: '12px', fontSize: '11px' }}
-                formatter={name =>
-                  isStacked
-                    ? (uniqueProducts.find(p => p.id === name)?.name ?? name)
-                    : name === 'revenue' ? 'Pendapatan' : 'Profit'
-                }
+                formatter={(value: any, name: any) => {
+                  const valNum = Number(value) || 0
+                  let labelName = name
+                  if (isStacked) {
+                    const match = activeSeries.find(s => s.id === name)
+                    labelName = match ? match.name : name
+                  } else {
+                    labelName = name === 'revenue' ? 'Total Omzet' : 'Total Profit'
+                  }
+                  return [`Rp ${valNum.toLocaleString('id-ID')}`, labelName]
+                }}
+                contentStyle={{
+                  backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                  borderRadius: '12px',
+                  border: 'none',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+                  color: '#ffffff',
+                  fontSize: '12px',
+                  padding: '10px 14px'
+                }}
+                itemStyle={{ color: '#fff' }}
+                cursor={{ fill: 'rgba(99, 102, 241, 0.08)' }}
               />
 
               {isStacked ? (
-                // One Bar per product — stacked
-                uniqueProducts.map(product => (
+                // 5 Stacked bars + 1 Other segment
+                activeSeries.map((series, idx) => (
                   <Bar
-                    key={product.id}
-                    dataKey={product.id}
+                    key={series.id}
+                    dataKey={series.id}
+                    name={series.name}
                     stackId="a"
-                    fill={productColorMap.get(product.id) ?? '#9333ea'}
-                    radius={uniqueProducts.indexOf(product) === uniqueProducts.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+                    fill={series.color}
+                    radius={idx === activeSeries.length - 1 ? [6, 6, 0, 0] : [0, 0, 0, 0]}
                   />
                 ))
               ) : (
-                // Two bars: revenue + profit
+                // Clean 2-bar comparison: Revenue & Profit
                 <>
-                  <Bar dataKey="revenue" name="revenue" fill="#d8b4fe" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="profit" name="profit" fill="#9333ea" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="revenue" name="revenue" fill="#6366f1" radius={[6, 6, 0, 0]} barSize={24} />
+                  <Bar dataKey="profit" name="profit" fill="#10b981" radius={[6, 6, 0, 0]} barSize={24} />
                 </>
               )}
             </BarChart>
@@ -263,6 +298,33 @@ export function SalesChart({
           </div>
         )}
       </div>
+
+      {/* Clean Bottom Legend Bar */}
+      {activeData.length > 0 && (
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 text-xs">
+          {isStacked ? (
+            activeSeries.map(s => (
+              <div key={s.id} className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
+                <span className="text-gray-600 dark:text-gray-400 font-medium truncate max-w-[140px]" title={s.name}>
+                  {s.name}
+                </span>
+              </div>
+            ))
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-md bg-indigo-600" />
+                <span className="text-gray-700 dark:text-gray-300 font-medium">Total Omzet Pendapatan</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-md bg-emerald-500" />
+                <span className="text-gray-700 dark:text-gray-300 font-medium">Estimasi Keuntungan (Profit)</span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }

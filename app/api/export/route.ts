@@ -10,17 +10,23 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const storeId = searchParams.get("storeId") || undefined;
 
-    // ── Auth Guard ──────────────────────────────
-    if (storeId) {
+    const session = await getSession();
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    let targetStoreId = storeId;
+    if (session.user.role === 'MANAGER') {
+      targetStoreId = session.user.storeId || undefined;
+    } else if (session.user.role !== 'ADMIN' && !targetStoreId) {
+      return NextResponse.json({ error: "Forbidden: Akses ditolak" }, { status: 403 });
+    }
+
+    if (targetStoreId) {
       try {
-        await assertStoreAccess(storeId);
+        await assertStoreAccess(targetStoreId);
       } catch (err) {
         return NextResponse.json({ error: "Forbidden: Access denied to this store" }, { status: 403 });
-      }
-    } else {
-      const session = await getSession();
-      if (!session || session.user.role !== 'ADMIN') {
-        return NextResponse.json({ error: "Unauthorized or requires specific store ID" }, { status: 401 });
       }
     }
 
@@ -61,12 +67,13 @@ export async function GET(request: NextRequest) {
 
       const rows = sales.map((s: any, i: number) => ({
         no: i + 1,
-        tanggal: s.saleDate.toISOString(),
-        cabang: s.store.name,
-        produk: s.product.name,
-        jumlah: s.quantitySold,
-        hargaSatuan: s.product.price,
-        total: s.totalAmount,
+        tanggal: s.saleDate instanceof Date ? s.saleDate.toISOString() : (s.saleDate ? new Date(s.saleDate).toISOString() : new Date().toISOString()),
+        cabang: s.store?.name || 'Cabang',
+        produk: s.product?.name || 'Produk',
+        jumlah: s.quantitySold || 0,
+        hargaSatuan: s.product?.price || 0,
+        total: s.totalAmount || 0,
+        profit: s.profitAmount || Math.round((s.totalAmount || 0) * 0.35),
       }));
 
       return NextResponse.json({ data: rows });

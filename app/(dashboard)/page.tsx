@@ -3,37 +3,29 @@ import prisma from '@/lib/db'
 import { SalesChart } from '@/components/SalesChart'
 import { ProductSalesBreakdown } from '@/components/ProductSalesBreakdown'
 import { Store, Package, TrendingUp, CircleDollarSign, Boxes } from 'lucide-react'
+import { getSession } from '@/lib/session'
+import { redirect } from 'next/navigation'
+import { formatCompactRupiah, formatFullRupiah } from '@/lib/format'
 
-// Bukan force-dynamic agar bisa di-cache, tapi revalidate tiap 60 detik
 export const revalidate = 60
 
 async function DashboardData() {
-  // Batas 30 hari terakhir — hindari tarik semua data
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
   const [stores, productCount, stockAgg, salesAgg, sales] = await Promise.all([
-    // Hanya ambil data yang dibutuhkan
     prisma.store.findMany({ select: { id: true, name: true } }),
-
-    // Hitung varian menu unik (berdasarkan nama yang berbeda)
     prisma.product.findMany({
       distinct: ['name'],
       select: { name: true },
     }),
-
-    // Hitung total fisik barang di seluruh cabang
     prisma.storeProduct.aggregate({
       _sum: { stockQuantity: true }
     }),
-
-    // Agregasi total di level DB — JAUH lebih efisien
     prisma.sale.aggregate({
       _sum: { totalAmount: true, profitAmount: true },
       _count: { id: true },
     }),
-
-    // Ambil data 30 hari terakhir saja untuk grafik, dengan select minimal
     prisma.sale.findMany({
       where: { saleDate: { gte: thirtyDaysAgo } },
       select: {
@@ -47,11 +39,11 @@ async function DashboardData() {
         product: { select: { name: true } },
       },
       orderBy: { saleDate: 'asc' },
-      take: 1000, // Batas aman
     }),
   ])
 
   const totalRevenue = salesAgg._sum.totalAmount ?? 0
+  const totalProfit = salesAgg._sum.profitAmount ?? 0
   const totalSales = salesAgg._count.id
   const totalStock = stockAgg._sum.stockQuantity ?? 0
 
@@ -75,59 +67,77 @@ async function DashboardData() {
 
   return (
     <>
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-6">
-        <StatCard
-          title="Total Cabang"
-          value={stores.length}
-          icon={<Store className="w-6 h-6 sm:w-7 sm:h-7 text-primary-600" />}
-          bg="bg-primary-50 dark:bg-primary-950/20"
-        />
-        <StatCard
-          title="Total Varian Menu"
-          value={productCount.length}
-          icon={<Package className="w-6 h-6 sm:w-7 sm:h-7 text-purple-600" />}
-          bg="bg-purple-50 dark:bg-purple-950/20"
-        />
-        <StatCard
-          title="Total Stok Fisik"
-          value={totalStock.toLocaleString('id-ID')}
-          icon={<Boxes className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600" />}
-          bg="bg-blue-50 dark:bg-blue-950/20"
-        />
+      {/* KPI Cards Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-5">
+        {/* 1. Total Omzet */}
+        <div className="col-span-2 sm:col-span-1 lg:col-span-1 bg-gradient-to-br from-indigo-600 to-indigo-700 dark:from-indigo-600 dark:to-indigo-800 text-white rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between relative overflow-hidden">
+          <div className="flex items-center justify-between z-10">
+            <span className="text-[11px] font-semibold tracking-wider uppercase text-indigo-200">Total Omzet</span>
+            <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
+              <CircleDollarSign className="w-4 h-4 text-white" />
+            </div>
+          </div>
+          <div className="mt-3 z-10">
+            <p 
+              className="text-xl sm:text-2xl font-extrabold tracking-tight cursor-default"
+              title={formatFullRupiah(totalRevenue)}
+            >
+              {formatCompactRupiah(totalRevenue, false)}
+            </p>
+            <p className="text-[11px] text-indigo-200 mt-0.5">
+              Margin: {totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : 0}%
+            </p>
+          </div>
+        </div>
+
+        {/* 2. Total Transaksi */}
         <StatCard
           title="Total Transaksi"
           value={totalSales.toLocaleString('id-ID')}
-          icon={<TrendingUp className="w-6 h-6 sm:w-7 sm:h-7 text-green-600" />}
-          bg="bg-green-50 dark:bg-green-950/20"
+          subtitle="30 hari terakhir"
+          icon={<TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+          badge="Aktif"
         />
+
+        {/* 3. Cabang Aktif */}
         <StatCard
-          title="Total Omzet"
-          value={`Rp ${
-            totalRevenue >= 1000000
-              ? (totalRevenue / 1000000).toFixed(1) + 'jt'
-              : totalRevenue.toLocaleString('id-ID')
-          }`}
-          icon={<CircleDollarSign className="w-6 h-6 sm:w-7 sm:h-7 text-yellow-600" />}
-          bg="bg-yellow-50 dark:bg-yellow-950/20"
+          title="Cabang Operasional"
+          value={`${stores.length} Cabang`}
+          subtitle="Terhubung terpusat"
+          icon={<Store className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />}
+          badge="Live"
+        />
+
+        {/* 4. Total Varian Menu */}
+        <StatCard
+          title="Varian Master Menu"
+          value={`${productCount.length} Menu`}
+          subtitle="Katalog aktif"
+          icon={<Package className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
+        />
+
+        {/* 5. Total Stok Fisik */}
+        <StatCard
+          title="Total Stok Fisik"
+          value={`${totalStock.toLocaleString('id-ID')} Pcs`}
+          subtitle="Inventaris cabang"
+          icon={<Boxes className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
         />
       </div>
 
       {/* Product Breakdown */}
       <ProductSalesBreakdown data={productSales} stores={stores} />
 
-      {/* Chart */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 sm:p-6">
+      {/* Sales Trend Chart */}
+      <div className="w-full">
         {stores.length > 0 ? (
           <SalesChart data={formattedSales} stores={stores} productSales={productSales} />
         ) : (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500">
-            <TrendingUp className="w-14 h-14 mb-4 opacity-30" />
-            <h3 className="text-lg font-heading font-semibold text-gray-600 dark:text-gray-300">
-              Belum Ada Data Penjualan
-            </h3>
-            <p className="text-sm mt-1 text-center max-w-xs">
-              Tambahkan cabang toko dan catat penjualan untuk melihat grafik di sini.
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-12 border border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center text-center text-gray-400">
+            <TrendingUp className="w-12 h-12 mb-3 opacity-30" />
+            <h3 className="text-base font-bold text-gray-700 dark:text-gray-300">Belum Ada Data Penjualan</h3>
+            <p className="text-xs text-gray-500 max-w-xs mt-1">
+              Catat penjualan pada menu kasir cabang untuk memunculkan tren grafik.
             </p>
           </div>
         )}
@@ -135,9 +145,6 @@ async function DashboardData() {
     </>
   )
 }
-
-import { getSession } from '@/lib/session'
-import { redirect } from 'next/navigation'
 
 export default async function DashboardPage() {
   const session = await getSession()
@@ -152,7 +159,7 @@ export default async function DashboardPage() {
           </div>
           <h2 className="text-2xl font-bold font-heading text-gray-900 dark:text-white mb-2">Akun Tidak Terhubung ke Cabang</h2>
           <p className="text-gray-500 dark:text-gray-400 max-w-md">
-            Akun Anda saat ini tidak memiliki akses ke cabang manapun (kemungkinan cabang sebelumnya telah dihapus). Silakan hubungi Admin Utama untuk menugaskan ulang akun Anda ke cabang yang benar.
+            Akun Anda saat ini tidak memiliki akses ke cabang manapun. Silakan hubungi Admin Utama.
           </p>
         </div>
       )
@@ -161,14 +168,22 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Title */}
-      <div>
-        <h1 className="text-xl sm:text-2xl font-heading font-bold text-gray-900 dark:text-white">
-          Selamat Datang, Admin!
-        </h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-          Ringkasan Kinerja Family Bakery — 30 hari terakhir.
-        </p>
+      {/* Modern Dashboard Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-heading font-extrabold text-gray-900 dark:text-white tracking-tight">
+            Dashboard Performa
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-0.5">
+            Ringkasan kinerja penjualan dan inventaris Family Bakery — 30 hari terakhir.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40">
+            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+            Live Sync Database
+          </span>
+        </div>
       </div>
 
       <Suspense fallback={<DashboardSkeleton />}>
@@ -178,47 +193,60 @@ export default async function DashboardPage() {
   )
 }
 
-// ── Skeleton Loading ───────────────────────────────────────────────
 function DashboardSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
-      {/* KPI Cards skeleton */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-5">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 sm:p-5">
-            <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-xl mb-3" />
-            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-2/3 mb-2" />
-            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
-          </div>
+          <div key={i} className="h-28 bg-gray-100 dark:bg-gray-800/50 rounded-2xl" />
         ))}
       </div>
-      {/* Chart skeleton */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 sm:p-6 h-72" />
+      <div className="h-80 bg-gray-100 dark:bg-gray-800/50 rounded-2xl" />
+      <div className="h-80 bg-gray-100 dark:bg-gray-800/50 rounded-2xl" />
     </div>
   )
 }
 
-// ── StatCard ───────────────────────────────────────────────────────
 function StatCard({
   title,
   value,
+  subtitle,
   icon,
-  bg,
+  badge,
 }: {
   title: string
   value: string | number
+  subtitle?: string
   icon: React.ReactNode
-  bg: string
+  badge?: string
 }) {
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 sm:p-5 hover:-translate-y-0.5 transition-transform">
-      <div className={`w-10 h-10 sm:w-12 sm:h-12 ${bg} rounded-xl flex items-center justify-center mb-3`}>
-        {icon}
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 sm:p-5 flex flex-col justify-between hover:border-gray-200 dark:hover:border-gray-700 transition-colors">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">
+          {title}
+        </span>
+        <div className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 flex items-center justify-center flex-shrink-0">
+          {icon}
+        </div>
       </div>
-      <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-medium truncate">{title}</p>
-      <p className="text-lg sm:text-2xl font-bold font-heading text-gray-900 dark:text-white mt-1 truncate">
-        {value}
-      </p>
+      <div className="mt-3">
+        <div className="flex items-baseline gap-2">
+          <p className="text-lg sm:text-xl font-bold font-heading text-gray-900 dark:text-white tracking-tight">
+            {value}
+          </p>
+          {badge && (
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded">
+              {badge}
+            </span>
+          )}
+        </div>
+        {subtitle && (
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 truncate">
+            {subtitle}
+          </p>
+        )}
+      </div>
     </div>
   )
 }

@@ -5,8 +5,8 @@ import { Package, Tag, ShoppingCart, Minus, Plus, Percent, CheckCircle2, Trash2,
 import Image from 'next/image'
 import { removeStoreProduct } from '@/lib/actions/product'
 import { toast } from 'sonner'
+import { formatFullRupiah } from '@/lib/format'
 
-// ── Product Card ───────────────────────────────────────────────────
 export function ProductCard({ 
   product, 
   storeId, 
@@ -27,8 +27,6 @@ export function ProductCard({
   const [showConfirmDelete, setShowConfirmDelete] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  // ── Optimistic stock update ────────────────────────────────────
-  // Available stock accounts for items already in the cart
   const availableStock = Math.max(0, product.stockQuantity - cartQty)
 
   const adjustQty = (delta: number) => {
@@ -44,7 +42,7 @@ export function ProductCard({
       onAddToCart(product, qtySold)
       setSaleQty(1)
       setSaleSuccess(true)
-      setTimeout(() => setSaleSuccess(false), 1000)
+      setTimeout(() => setSaleSuccess(false), 900)
     }
   }
 
@@ -68,53 +66,57 @@ export function ProductCard({
     : product.price
 
   return (
-    <>
-      <div className={`relative bg-white dark:bg-gray-900 rounded-xl border flex ${viewMode === 'list' ? 'flex-col sm:flex-row items-center p-3 gap-4' : 'flex-col h-full'} overflow-hidden group hover:border-gray-300 dark:hover:border-gray-700 transition-colors duration-150 border-gray-200 dark:border-gray-800 shadow-sm`}>
-        
-        {/* Delete Confirmation Overlay */}
-        {showConfirmDelete && (
-          <div className="absolute inset-0 bg-white/95 dark:bg-gray-900/95 z-20 flex flex-col items-center justify-center p-2 sm:p-4 text-center animate-in fade-in zoom-in duration-200 overflow-y-auto">
-            <div className="hidden sm:flex w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-red-100 dark:bg-red-900/30 items-center justify-center mb-2 sm:mb-3 flex-shrink-0">
-              <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 dark:text-red-400" />
-            </div>
-            <h4 className="font-bold text-sm sm:text-base text-gray-900 dark:text-white mb-1">Hapus Produk?</h4>
-            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mb-3 px-1 sm:px-2 leading-tight">
-              Yakin hapus <strong>{product.name}</strong>? Riwayat penjualan tidak hilang.
-            </p>
-            <div className="flex gap-2 w-full max-w-[200px] mt-auto sm:mt-0">
-              <button 
-                onClick={() => setShowConfirmDelete(false)}
-                disabled={isPending}
-                className="flex-1 px-2 py-1.5 sm:px-3 sm:py-2 text-[10px] sm:text-xs font-semibold rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
-              >
-                Batal
-              </button>
-              <button 
-                onClick={handleDelete}
-                disabled={isPending}
-                className="flex-1 px-2 py-1.5 sm:px-3 sm:py-2 text-[10px] sm:text-xs font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors shadow-sm shadow-red-600/20 disabled:opacity-50 flex items-center justify-center"
-              >
-                {isPending ? <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : 'Hapus'}
-              </button>
-            </div>
+    <div 
+      className={`relative bg-white dark:bg-gray-900 rounded-2xl border flex ${
+        viewMode === 'list' ? 'flex-col sm:flex-row items-center p-3.5 gap-4' : 'flex-col h-full'
+      } overflow-hidden group hover:border-indigo-200 dark:hover:border-indigo-800/60 transition-all duration-200 border-gray-200 dark:border-gray-800 shadow-xs hover:shadow-md ${
+        isOutOfStock ? 'opacity-75 dark:opacity-70' : ''
+      }`}
+    >
+      {/* Delete Confirmation Overlay */}
+      {showConfirmDelete && (
+        <div className="absolute inset-0 bg-white/95 dark:bg-gray-900/95 z-20 flex flex-col items-center justify-center p-4 text-center animate-in fade-in duration-150 backdrop-blur-xs">
+          <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-950/50 flex items-center justify-center mb-2 text-rose-600 dark:text-rose-400">
+            <AlertTriangle className="w-5 h-5" />
           </div>
-        )}
+          <h4 className="font-bold text-sm text-gray-900 dark:text-white mb-1">Hapus dari Cabang?</h4>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 px-2 leading-tight">
+            Yakin hapus <strong>{product.name}</strong>?
+          </p>
+          <div className="flex gap-2 w-full max-w-[200px]">
+            <button 
+              onClick={() => setShowConfirmDelete(false)}
+              disabled={isPending}
+              className="flex-1 px-3 py-1.5 text-xs font-semibold rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
+            >
+              Batal
+            </button>
+            <button 
+              onClick={handleDelete}
+              disabled={isPending}
+              className="flex-1 px-3 py-1.5 text-xs font-semibold rounded-xl bg-rose-600 text-white hover:bg-rose-700 transition-colors shadow-xs"
+            >
+              {isPending ? '...' : 'Hapus'}
+            </button>
+          </div>
+        </div>
+      )}
 
-        {/* Delete Button (Admin Only) */}
-        {isAdmin && !showConfirmDelete && (
-          <button 
-            onClick={(e) => { e.preventDefault(); setShowConfirmDelete(true); }}
-            className="absolute top-2 right-2 p-2 rounded-lg bg-white/90 dark:bg-gray-900/90 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-600 shadow-sm opacity-0 group-hover:opacity-100 transition-all z-10 border border-gray-100 dark:border-gray-800"
-            title="Hapus Produk dari Cabang"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        )}
+      {/* Delete Button (Admin Only) */}
+      {isAdmin && !showConfirmDelete && (
+        <button 
+          onClick={(e) => { e.preventDefault(); setShowConfirmDelete(true); }}
+          className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-white/90 dark:bg-gray-900/90 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all z-10 border border-gray-200/80 dark:border-gray-700/80 shadow-xs"
+          title="Hapus Produk dari Cabang"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      )}
 
-        {/* Product Image */}
-        {viewMode === 'grid' && (
-          product.imageUrl ? (
-          <div className="h-44 sm:h-48 bg-gray-100 dark:bg-gray-800 overflow-hidden relative">
+      {/* Product Image & Badges */}
+      {viewMode === 'grid' && (
+        <div className="h-36 sm:h-40 bg-gray-100 dark:bg-gray-800/70 overflow-hidden relative flex items-center justify-center">
+          {product.imageUrl ? (
             <Image
               src={product.imageUrl}
               alt={product.name}
@@ -122,138 +124,139 @@ export function ProductCard({
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
               className="object-cover transition-transform duration-300 group-hover:scale-105"
             />
-            {isOutOfStock && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <span className="text-white font-bold text-sm bg-red-600 px-3 py-1 rounded-full">Habis</span>
-              </div>
-            )}
-            {hasDiscount && (
-              <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-md">
-                <Percent className="w-3 h-3" />
-                -{product.discount}%
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="h-44 sm:h-48 bg-gradient-to-br from-primary-100 to-purple-100 flex items-center justify-center relative">
-            <Package className="w-14 h-14 text-primary-300" />
-            {isOutOfStock && (
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                <span className="text-white font-bold text-sm bg-red-600 px-3 py-1 rounded-full">Habis</span>
-              </div>
-            )}
-            {hasDiscount && (
-              <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-md">
-                <Percent className="w-3 h-3" />
-                -{product.discount}%
-              </div>
-            )}
-          </div>
-        ))}
-
-        {/* Card Body */}
-        <div className={`flex flex-col flex-1 space-y-3 w-full ${viewMode === 'grid' ? 'p-4' : ''}`}>
-          {/* Name + Actions */}
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="font-bold text-base text-gray-900 dark:text-white leading-tight line-clamp-2 flex-1">{product.name}</h3>
-          </div>
-
-          {product.description && (
-            <p className="text-gray-400 dark:text-gray-500 text-xs line-clamp-2 leading-relaxed">{product.description}</p>
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-850 flex items-center justify-center">
+              <Package className="w-10 h-10 text-gray-300 dark:text-gray-600" />
+            </div>
           )}
 
-          <div className={`flex ${viewMode === 'list' ? 'flex-col md:flex-row gap-3 items-start md:items-center' : 'flex-col gap-3'} mt-auto pt-2`}>
-            {/* Price & Stock */}
-            <div className={`flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2 ${viewMode === 'list' ? 'w-full md:w-auto md:flex-1' : ''}`}>
-              <div className="flex items-center gap-1.5">
-              <Tag className="w-3.5 h-3.5 text-primary-500 flex-shrink-0" />
-              {hasDiscount ? (
-                <div className="flex flex-col">
-                  <span className="text-xs text-gray-400 line-through">
-                    Rp {product.price.toLocaleString('id-ID')}
-                  </span>
-                  <span className="font-bold text-sm text-red-600 dark:text-red-400">
-                    Rp {Math.round(discountedPrice).toLocaleString('id-ID')}
-                  </span>
-                </div>
-              ) : (
-                <span className="font-bold text-sm text-gray-800 dark:text-gray-100">
+          {/* Sleek Status Badges (Taste-skill compliant) */}
+          <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+            {hasDiscount && (
+              <span className="inline-flex items-center gap-1 bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs">
+                <Percent className="w-2.5 h-2.5" />
+                -{product.discount}%
+              </span>
+            )}
+          </div>
+
+          {isOutOfStock && (
+            <div className="absolute top-2 right-2 z-10">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-900/80 dark:bg-black/80 text-gray-300 backdrop-blur-xs border border-gray-700/60 shadow-xs">
+                Stok Habis
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Card Body */}
+      <div className={`flex flex-col flex-1 p-3.5 sm:p-4 space-y-2.5 w-full ${viewMode === 'list' ? 'p-0' : ''}`}>
+        {/* Product Name */}
+        <div className="min-h-[2.5rem]">
+          <h3 className="font-heading font-bold text-sm sm:text-base text-gray-900 dark:text-gray-100 leading-snug line-clamp-2">
+            {product.name}
+          </h3>
+        </div>
+
+        {/* Price & Stock Row */}
+        <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-gray-800/80">
+          <div>
+            {hasDiscount ? (
+              <div className="flex flex-col">
+                <span className="text-[10px] text-gray-400 line-through">
                   Rp {product.price.toLocaleString('id-ID')}
                 </span>
-              )}
-            </div>
-            {/* Optimistic stock display */}
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full transition-colors ${
-              isOutOfStock
-                ? 'bg-red-100 text-red-600'
-                : isLowStock
-                ? 'bg-yellow-100 text-yellow-700'
-                : 'bg-green-100 text-green-700'
-            }`}>
-              {isOutOfStock ? 'Habis' : `${availableStock} stok`}
-            </span>
+                <span className="font-extrabold text-sm sm:text-base text-indigo-600 dark:text-indigo-400">
+                  Rp {Math.round(discountedPrice).toLocaleString('id-ID')}
+                </span>
+              </div>
+            ) : (
+              <span className="font-extrabold text-sm sm:text-base text-gray-900 dark:text-white">
+                Rp {product.price.toLocaleString('id-ID')}
+              </span>
+            )}
           </div>
 
-          {/* Sale Controls */}
-          <div className={`flex items-center gap-2 ${viewMode === 'list' ? 'w-full md:w-auto shrink-0' : 'pt-1'}`}>
-            <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden h-11 bg-gray-50 dark:bg-gray-800/50">
-              <button
-                onClick={() => adjustQty(-1)}
-                disabled={typeof saleQty !== 'number' || saleQty <= 1 || isOutOfStock}
-                className="w-11 h-full flex items-center justify-center text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 transition-colors duration-150"
-              >
-                <Minus className="w-4 h-4" />
-              </button>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={saleQty}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value.replace(/\D/g, ''))
-                  if (isNaN(val)) {
-                    setSaleQty('')
-                  } else {
-                    setSaleQty(Math.min(availableStock, val))
-                  }
-                }}
-                onBlur={() => {
-                  if (saleQty === '' || saleQty < 1) setSaleQty(1)
-                }}
-                disabled={isOutOfStock}
-                className="w-10 h-full text-center text-base font-bold text-gray-900 dark:text-gray-100 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white dark:focus:bg-gray-900 p-0 transition-all"
-              />
-              <button
-                onClick={() => adjustQty(1)}
-                disabled={typeof saleQty === 'number' && saleQty >= availableStock || isOutOfStock}
-                className="w-11 h-full flex items-center justify-center text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 transition-colors duration-150"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
+          <span 
+            className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg transition-colors ${
+              isOutOfStock
+                ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                : isLowStock
+                ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50'
+                : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/50'
+            }`}
+          >
+            {isOutOfStock ? '0 unit' : `${availableStock} unit`}
+          </span>
+        </div>
 
+        {/* Sale Stepper & Action */}
+        <div className="flex items-center gap-2 pt-1 mt-auto">
+          {/* Stepper */}
+          <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden h-9 bg-gray-50 dark:bg-gray-800/60 flex-shrink-0">
             <button
-              onClick={handleSale}
-              disabled={isOutOfStock}
-              className={`flex-1 flex items-center justify-center gap-2 text-white text-sm font-bold h-11 rounded-xl transition-colors duration-150 outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:focus:ring-offset-gray-900 ${
-                saleSuccess
-                  ? 'bg-emerald-500'
-                  : isOutOfStock
-                  ? 'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                  : 'bg-green-600 hover:bg-green-700 active:bg-green-800'
-              }`}
+              type="button"
+              onClick={() => adjustQty(-1)}
+              disabled={typeof saleQty !== 'number' || saleQty <= 1 || isOutOfStock}
+              className="w-8 h-full flex items-center justify-center text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 transition-colors"
             >
-              {saleSuccess ? (
-                <><CheckCircle2 className="w-3.5 h-3.5" /> Ditambah</>
-              ) : isOutOfStock ? (
-                'Stok Habis'
-              ) : (
-                <><Plus className="w-4 h-4" /> Tambah</>
-              )}
+              <Minus className="w-3 h-3" />
+            </button>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={saleQty}
+              onChange={(e) => {
+                const val = parseInt(e.target.value.replace(/\D/g, ''))
+                if (isNaN(val)) setSaleQty('')
+                else setSaleQty(Math.min(availableStock, val))
+              }}
+              onBlur={() => {
+                if (saleQty === '' || saleQty < 1) setSaleQty(1)
+              }}
+              disabled={isOutOfStock}
+              className="w-8 h-full text-center text-xs font-bold text-gray-900 dark:text-white bg-transparent border-none focus:outline-none p-0"
+            />
+            <button
+              type="button"
+              onClick={() => adjustQty(1)}
+              disabled={(typeof saleQty === 'number' && saleQty >= availableStock) || isOutOfStock}
+              className="w-8 h-full flex items-center justify-center text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 transition-colors"
+            >
+              <Plus className="w-3 h-3" />
             </button>
           </div>
+
+          {/* Add to Cart Button */}
+          <button
+            type="button"
+            onClick={handleSale}
+            disabled={isOutOfStock}
+            className={`flex-1 h-9 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] ${
+              saleSuccess
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : isOutOfStock
+                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs shadow-indigo-500/20'
+            }`}
+          >
+            {saleSuccess ? (
+              <>
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Ditambah</span>
+              </>
+            ) : isOutOfStock ? (
+              <span>Habis</span>
+            ) : (
+              <>
+                <ShoppingCart className="w-3.5 h-3.5" />
+                <span>+ Keranjang</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>
-    </>
   )
 }

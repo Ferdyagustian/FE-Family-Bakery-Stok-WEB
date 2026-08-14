@@ -5,6 +5,7 @@ Tanggal Dibuat  : 25 Mei 2026
 Versi Aplikasi  : 0.1.1
 Dibuat Oleh     : Tim Pengembang Family Bakery
 Repository      : Ferdyagustian/Family-Bakery-Stok-WEB
+Link Video YT   : https://youtu.be/PeyZ-ZcziEo
 ================================================================================
 
 

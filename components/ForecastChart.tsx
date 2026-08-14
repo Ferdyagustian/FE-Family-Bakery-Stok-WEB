@@ -11,7 +11,7 @@ import {
   CartesianGrid,
   Legend
 } from 'recharts'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Sparkles } from 'lucide-react'
 
 export interface ForecastSeries {
   id: string
@@ -28,15 +28,18 @@ interface ForecastChartProps {
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-4 rounded-xl shadow-xl">
-        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">{label}</p>
-        <div className="space-y-1">
+      <div className="bg-gray-900/95 dark:bg-gray-950/95 backdrop-blur-md border border-gray-800 text-white p-3.5 rounded-xl shadow-xl text-xs">
+        <p className="font-semibold text-gray-300 mb-2 border-b border-gray-800 pb-1.5">{label}</p>
+        <div className="space-y-1.5">
           {payload.map((entry: any, index: number) => (
-            <div key={index} className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {entry.name}: <span className="font-bold">{entry.value}</span> <span className="text-xs text-gray-500">item</span>
-              </p>
+            <div key={index} className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
+                <span className="text-gray-300 font-medium truncate max-w-[140px]">{entry.name}</span>
+              </div>
+              <span className="font-bold text-white">
+                {entry.value} <span className="text-[10px] text-gray-400 font-normal">unit</span>
+              </span>
             </div>
           ))}
         </div>
@@ -50,39 +53,39 @@ export function ForecastChart({ data, isLoading, error }: ForecastChartProps) {
   const { theme } = useTheme()
   const isDark = theme === 'dark'
 
-  // Lila Rule: Neutral Base, vibrant contrast colors
-  const gridColor = isDark ? '#374151' : '#f3f4f6'
+  const gridColor = isDark ? '#1f2937' : '#f3f4f6'
   const textColor = isDark ? '#9ca3af' : '#6b7280'
-  const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316']
+  const colors = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#3b82f6', '#8b5cf6', '#14b8a6', '#f97316']
 
-  // Empty state logic
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-80 rounded-2xl border border-dashed border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/20 text-red-600 dark:text-red-400">
-        <AlertCircle className="w-8 h-8 mb-3 opacity-80" />
-        <p className="text-sm font-medium max-w-[300px] text-center">{error}</p>
+      <div className="flex flex-col items-center justify-center h-80 rounded-2xl border border-dashed border-rose-200 dark:border-rose-900/40 bg-rose-50/40 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 p-6">
+        <AlertCircle className="w-9 h-9 mb-3 opacity-80" />
+        <p className="text-sm font-semibold mb-1">Gagal Memproses Prediksi</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 max-w-[320px] text-center">{error}</p>
       </div>
     )
   }
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-80 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 animate-pulse">
-        <div className="w-8 h-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin mb-4" />
-        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Memproses prediksi model AI...</p>
+      <div className="flex flex-col items-center justify-center h-80 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50/40 dark:bg-gray-800/30 animate-pulse">
+        <div className="w-8 h-8 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin mb-3" />
+        <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Menjalankan Algoritma Deret Waktu...</p>
+        <p className="text-[11px] text-gray-400 mt-0.5">Menganalisis pola musiman hari &amp; tren penjualan</p>
       </div>
     )
   }
 
   if (!data || data.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-80 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
-        <div className="w-12 h-12 rounded-full bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center mb-4">
-          <div className="w-6 h-6 border-2 border-indigo-500 rounded-sm opacity-50" />
+      <div className="flex flex-col items-center justify-center h-80 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/40 p-6 text-center">
+        <div className="w-11 h-11 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-center mb-3">
+          <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
         </div>
-        <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white mb-1">Belum Ada Data</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-[320px] text-center">
-          Pilih toko dan produk di sebelah kiri, lalu jalankan prediksi untuk melihat estimasi penjualan.
+        <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-white mb-1">Siap Melakukan Analisis</h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 max-w-[320px]">
+          Pilih cabang dan varian produk di samping, lalu klik <strong>"Mulai Prediksi AI"</strong> untuk melihat proyeksi penjualan 7 hari ke depan.
         </p>
       </div>
     )
@@ -123,17 +126,23 @@ export function ForecastChart({ data, isLoading, error }: ForecastChartProps) {
             tickFormatter={formatXAxis}
             axisLine={false}
             tickLine={false}
-            tick={{ fill: textColor, fontSize: 12, fontWeight: 500 }}
-            dy={10}
+            tick={{ fill: textColor, fontSize: 11, fontWeight: 500 }}
+            dy={8}
           />
           <YAxis 
             axisLine={false}
             tickLine={false}
-            tick={{ fill: textColor, fontSize: 12, fontWeight: 500 }}
-            dx={-10}
+            tick={{ fill: textColor, fontSize: 11, fontWeight: 500 }}
+            dx={-6}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ stroke: gridColor, strokeWidth: 2, strokeDasharray: '4 4' }} />
-          {data.length > 1 && <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />}
+          <Tooltip content={<CustomTooltip />} cursor={{ stroke: gridColor, strokeWidth: 1.5, strokeDasharray: '4 4' }} />
+          {data.length > 1 && (
+            <Legend 
+              wrapperStyle={{ paddingTop: '16px', fontSize: '11px' }} 
+              iconType="circle"
+              formatter={(value) => <span className="text-gray-700 dark:text-gray-300 font-medium">{value}</span>}
+            />
+          )}
           
           {data.map((series, index) => (
             <Line
@@ -141,10 +150,10 @@ export function ForecastChart({ data, isLoading, error }: ForecastChartProps) {
               type="monotone"
               dataKey={series.name}
               stroke={colors[index % colors.length]}
-              strokeWidth={3}
-              dot={false}
+              strokeWidth={2.5}
+              dot={{ r: 3.5, fill: colors[index % colors.length], strokeWidth: 0 }}
               activeDot={{ r: 6, strokeWidth: 0 }}
-              animationDuration={1500}
+              animationDuration={1000}
               animationEasing="ease-out"
             />
           ))}

@@ -87,7 +87,13 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
       </div>
 
       {/* Product Search & Grid */}
-      <ProductSearchList products={storeProductsList} storeId={storeId} isAdmin={isAdmin} />
+      <ProductSearchList 
+        products={storeProductsList} 
+        storeId={storeId} 
+        storeName={store.name}
+        storeLocation={store.location}
+        isAdmin={isAdmin} 
+      />
     </div>
   )
 }

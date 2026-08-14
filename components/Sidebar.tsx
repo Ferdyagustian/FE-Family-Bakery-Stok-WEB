@@ -14,13 +14,13 @@ interface SidebarProps {
 const navLinks = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/stores', label: 'Manajemen Cabang', icon: StoreIcon },
-  { href: '/reports', label: 'Laporan', icon: FileSpreadsheet },
+  { href: '/reports', label: 'Laporan & Ekspor', icon: FileSpreadsheet },
 ]
 
 const adminOnlyLinks = [
-  { href: '/products', label: 'Katalog Produk', icon: Package },
+  { href: '/products', label: 'Katalog Master Produk', icon: Package },
+  { href: '/forecast', label: 'Prediksi Penjualan AI', icon: BrainCircuit },
   { href: '/audit', label: 'Riwayat Aktivitas', icon: ClipboardList },
-  { href: '/forecast', label: 'Prediksi AI', icon: BrainCircuit },
 ]
 
 export function Sidebar({ onClose, showCloseButton, user }: SidebarProps) {
@@ -29,7 +29,8 @@ export function Sidebar({ onClose, showCloseButton, user }: SidebarProps) {
   let visibleLinks = navLinks
   if (user?.role === 'MANAGER') {
     visibleLinks = [
-      { href: `/stores/${user.storeId}`, label: 'Cabang Saya', icon: StoreIcon }
+      { href: `/stores/${user.storeId}`, label: 'Cabang Saya (Kasir)', icon: StoreIcon },
+      { href: '/reports', label: 'Laporan Penjualan', icon: FileSpreadsheet }
     ]
   }
 
@@ -39,58 +40,71 @@ export function Sidebar({ onClose, showCloseButton, user }: SidebarProps) {
   }
 
   return (
-    <div className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 h-full flex flex-col flex-shrink-0">
-      {/* Header */}
-      <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-white dark:bg-gray-900 flex items-center justify-center p-0.5 shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
-            <img src="/logo.png" alt="Family Bakery Logo" className="w-full h-full object-contain" />
+    <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800/80 h-full flex flex-col flex-shrink-0 select-none">
+      {/* Brand Header */}
+      <div className="px-5 py-5 border-b border-gray-100 dark:border-gray-800/80 flex items-center justify-between">
+        <Link href="/" className="flex items-center space-x-3 group">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-indigo-600 flex items-center justify-center p-0.5 shadow-sm overflow-hidden flex-shrink-0 group-hover:scale-105 transition-transform">
+            <div className="w-full h-full bg-white dark:bg-gray-900 rounded-[10px] flex items-center justify-center">
+              <img src="/logo.png" alt="Family Bakery" className="w-6 h-6 object-contain" />
+            </div>
           </div>
-          <h1 className="text-base font-heading font-bold text-gray-900 dark:text-white">Family Bakery</h1>
-        </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-heading font-extrabold text-gray-900 dark:text-white tracking-tight">
+              Family Bakery
+            </span>
+            <span className="text-[10px] text-gray-400 font-medium tracking-wide">
+              SISTEM INVENTARIS &amp; POS
+            </span>
+          </div>
+        </Link>
+
         {showCloseButton && (
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-800 transition-colors"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             aria-label="Tutup menu"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         )}
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-4 mb-3">
-          Menu Utama
-        </p>
-        {visibleLinks.map(({ href, label, icon: Icon }) => {
-          const active = isActive(href)
-          return (
-            <Link
-              key={href}
-              href={href}
-              onClick={onClose}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-150 ${
-                active
-                  ? 'bg-primary-600 text-white shadow-md shadow-primary-200 dark:shadow-primary-900/30'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-950/20 hover:text-primary-700 dark:hover:text-primary-400'
-              }`}
-            >
-              <Icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-white' : ''}`} />
-              <span>{label}</span>
-              {active && (
-                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white opacity-80" />
-              )}
-            </Link>
-          )
-        })}
+      {/* Nav Links */}
+      <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto custom-scrollbar">
+        {/* Section 1: Operasional Utama */}
+        <div className="space-y-1">
+          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-3 mb-2">
+            Operasional
+          </p>
+          {visibleLinks.map(({ href, label, icon: Icon }) => {
+            const active = isActive(href)
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={onClose}
+                className={`flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-xs sm:text-sm transition-all duration-150 ${
+                  active
+                    ? 'bg-indigo-600 text-white font-semibold shadow-sm shadow-indigo-500/20'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-white' : 'text-gray-400 dark:text-gray-500'}`} />
+                <span className="truncate">{label}</span>
+                {active && (
+                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white opacity-80" />
+                )}
+              </Link>
+            )
+          })}
+        </div>
 
-        {/* Khusus ADMIN: Riwayat Aktivitas */}
+        {/* Section 2: Administrasi (Khusus Admin) */}
         {user?.role === 'ADMIN' && (
-          <>
-            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-4 pt-4 pb-2">
-              Admin
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-3 mb-2">
+              Administrasi &amp; Analisis
             </p>
             {adminOnlyLinks.map(({ href, label, icon: Icon }) => {
               const active = isActive(href)
@@ -99,37 +113,41 @@ export function Sidebar({ onClose, showCloseButton, user }: SidebarProps) {
                   key={href}
                   href={href}
                   onClick={onClose}
-                  className={`flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-150 ${
+                  className={`flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-xs sm:text-sm transition-all duration-150 ${
                     active
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-indigo-900/30'
-                      : 'text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:text-indigo-700 dark:hover:text-indigo-400'
+                      ? 'bg-indigo-600 text-white font-semibold shadow-sm shadow-indigo-500/20'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 >
-                  <Icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-white' : ''}`} />
-                  <span>{label}</span>
+                  <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-white' : 'text-gray-400 dark:text-gray-500'}`} />
+                  <span className="truncate">{label}</span>
                   {active && (
                     <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white opacity-80" />
                   )}
                 </Link>
               )
             })}
-          </>
+          </div>
         )}
       </nav>
 
-
-      {/* Footer: Logout */}
-      <div className="p-4 border-t border-gray-100 dark:border-gray-800">
+      {/* User Info & Logout Footer */}
+      <div className="p-3 pb-8 border-t border-gray-100 dark:border-gray-800/80 bg-gray-50/50 dark:bg-gray-900/50">
         <form action={logoutAction}>
           <button
             type="submit"
-            className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-600 transition-colors font-medium text-sm"
+            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 bg-white dark:bg-gray-800/80 border border-gray-200/60 dark:border-gray-700/60 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:border-rose-200 dark:hover:border-rose-900/40 transition-all shadow-xs"
           >
-            <LogOut className="w-5 h-5 flex-shrink-0" />
-            <span>Logout</span>
+            <span className="flex items-center gap-2">
+              <LogOut className="w-4 h-4 flex-shrink-0" />
+              <span>Keluar (Logout)</span>
+            </span>
+            <span className="text-[10px] text-gray-400 font-medium px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded">
+              {user?.role || 'User'}
+            </span>
           </button>
         </form>
       </div>
-    </div>
+    </aside>
   )
 }

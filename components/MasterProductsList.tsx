@@ -96,7 +96,7 @@ export function MasterProductsList({ products }: { products: any[] }) {
           ) : (
             <button
               onClick={() => setIsEditMode(true)}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl font-semibold border border-indigo-200 w-full sm:w-auto"
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 rounded-xl font-semibold border border-indigo-200 dark:border-indigo-800/60 w-full sm:w-auto text-xs sm:text-sm transition-all"
             >
               <Edit3 className="w-4 h-4" />
               Mode Edit Cepat

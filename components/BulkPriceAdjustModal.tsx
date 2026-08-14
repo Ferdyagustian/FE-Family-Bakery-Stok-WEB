@@ -40,9 +40,9 @@ export function BulkPriceAdjustModal() {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors w-full sm:w-auto"
+        className="flex items-center justify-center gap-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all w-full sm:w-auto shadow-xs"
       >
-        <TrendingUp className="w-4 h-4" />
+        <TrendingUp className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
         Penyesuaian Harga
       </button>
 

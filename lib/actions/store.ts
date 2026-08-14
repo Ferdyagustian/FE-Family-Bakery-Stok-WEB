@@ -2,11 +2,8 @@
 
 import prisma from '@/lib/db'
 import { revalidatePath } from 'next/cache'
-import { getSession , getSessionToken} from '@/lib/session'
+import { getSession } from '@/lib/session'
 import { writeAuditLog } from '@/lib/audit'
-import { ENV } from '@/lib/env'
-
-const API_BASE = ENV.API_BASE
 
 async function getSessionUser() {
   const session = await getSession()
@@ -17,30 +14,45 @@ export async function createStore(formData: FormData) {
   const user = await getSessionUser()
   if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' }
 
-  const name = formData.get('name') as string
-  const location = formData.get('location') as string
+  const name = (formData.get('name') as string)?.trim()
+  const location = (formData.get('location') as string)?.trim() || null
 
   if (!name) return { error: 'Nama toko wajib diisi' }
 
   try {
-    const token = await getSessionToken();
-    const res = await fetch(`${API_BASE}/stores/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      },
-      body: JSON.stringify({ name, location })
+    const store = await prisma.store.create({
+      data: { name, location }
     })
 
-    if (!res.ok) {
-      throw new Error('Failed to create store via API')
+    // Hubungkan seluruh produk master yang ada ke cabang baru ini dengan stok awal 0
+    const masterProducts = await prisma.product.findMany({ select: { id: true } })
+    if (masterProducts.length > 0) {
+      await prisma.storeProduct.createMany({
+        data: masterProducts.map(p => ({
+          storeId: store.id,
+          productId: p.id,
+          stockQuantity: 0
+        })),
+        skipDuplicates: true
+      })
     }
-    const store = await res.json()
+
+    await writeAuditLog({
+      userId: user.id,
+      username: user.username,
+      action: 'CREATE_STORE',
+      entityType: 'Store',
+      entityId: store.id,
+      entityName: store.name,
+      detail: { location }
+    })
 
     revalidatePath('/stores')
+    revalidatePath('/')
     return { success: true, store }
-  } catch (error) {
-    return { error: 'Gagal membuat toko' }
+  } catch (error: any) {
+    console.error('Error createStore:', error)
+    return { error: error?.message || 'Gagal membuat toko baru' }
   }
 }
 
@@ -48,30 +60,34 @@ export async function updateStore(id: string, formData: FormData) {
   const user = await getSessionUser()
   if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' }
 
-  const name = formData.get('name') as string
-  const location = formData.get('location') as string
+  const name = (formData.get('name') as string)?.trim()
+  const location = (formData.get('location') as string)?.trim() || null
 
   if (!name) return { error: 'Nama toko wajib diisi' }
 
   try {
-    const token = await getSessionToken();
-    const res = await fetch(`${API_BASE}/stores/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      },
-      body: JSON.stringify({ name, location })
+    const updated = await prisma.store.update({
+      where: { id },
+      data: { name, location }
     })
 
-    if (!res.ok) {
-      throw new Error('Failed to update store via API')
-    }
+    await writeAuditLog({
+      userId: user.id,
+      username: user.username,
+      action: 'UPDATE_STORE',
+      entityType: 'Store',
+      entityId: id,
+      entityName: updated.name,
+      detail: { location }
+    })
 
     revalidatePath('/stores')
     revalidatePath(`/stores/${id}`)
-    return { success: true }
-  } catch (error) {
-    return { error: 'Gagal mengedit toko' }
+    revalidatePath('/')
+    return { success: true, store: updated }
+  } catch (error: any) {
+    console.error('Error updateStore:', error)
+    return { error: error?.message || 'Gagal mengedit toko' }
   }
 }
 
@@ -80,20 +96,29 @@ export async function deleteStore(id: string) {
   if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' }
 
   try {
-    const token = await getSessionToken();
-    const res = await fetch(`${API_BASE}/stores/${id}`, {
-      headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-      method: 'DELETE',
-    })
+    const store = await prisma.store.findUnique({ where: { id }, select: { name: true } })
 
-    if (!res.ok) {
-      throw new Error('Failed to delete store via API')
-    }
+    await prisma.$transaction([
+      prisma.sale.deleteMany({ where: { storeId: id } }),
+      prisma.storeProduct.deleteMany({ where: { storeId: id } }),
+      prisma.user.deleteMany({ where: { storeId: id } }),
+      prisma.store.delete({ where: { id } })
+    ])
+
+    await writeAuditLog({
+      userId: user.id,
+      username: user.username,
+      action: 'DELETE_STORE',
+      entityType: 'Store',
+      entityId: id,
+      entityName: store?.name,
+    })
 
     revalidatePath('/stores')
     revalidatePath('/')
     return { success: true }
-  } catch (error) {
-    return { error: 'Gagal menghapus toko' }
+  } catch (error: any) {
+    console.error('Error deleteStore:', error)
+    return { error: error?.message || 'Gagal menghapus toko' }
   }
 }

@@ -5,7 +5,7 @@ import { jwtVerify } from 'jose'
 const secretKey = process.env.JWT_SECRET || 'family-bakery-super-secret-key-change-in-prod'
 const key = new TextEncoder().encode(secretKey)
 
-export default async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const session = request.cookies.get('session')?.value
   const { pathname } = request.nextUrl
 
@@ -24,11 +24,20 @@ export default async function proxy(request: NextRequest) {
 
     // If manager tries to access restricted areas
     if (user.role === 'MANAGER') {
-      if (pathname === '/' || pathname === '/reports' || pathname === '/stores') {
+      // MANAGER is allowed to access:
+      // 1. /stores/{user.storeId}
+      // 2. /reports (scoped to their own store)
+      if (
+        pathname === '/' ||
+        pathname === '/stores' ||
+        pathname === '/products' ||
+        pathname === '/forecast' ||
+        pathname === '/audit'
+      ) {
         if (user.storeId) {
           return NextResponse.redirect(new URL(`/stores/${user.storeId}`, request.url))
         }
-        return NextResponse.redirect(new URL('/login', request.url)) // Or a 'no store assigned' page
+        return NextResponse.redirect(new URL('/login', request.url))
       }
 
       // If manager tries to access another store's page

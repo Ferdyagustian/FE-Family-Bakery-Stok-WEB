@@ -49,14 +49,12 @@ export default async function RestockPage({ params }: { params: Promise<{ id: st
         </div>
       </div>
 
-      {/* Info Banner */}
-      <div className="bg-primary-50 dark:bg-primary-950/20 border border-primary-200 rounded-xl p-4 text-sm text-primary-800">
-        <p className="font-semibold mb-1">Cara Penggunaan:</p>
-        <ul className="space-y-0.5 text-primary-700 list-disc list-inside">
-          <li>Isi jumlah unit yang <strong>ditambahkan</strong> (bukan jumlah total) untuk produk yang perlu direstok</li>
-          <li>Produk yang tidak diisi akan <strong>diabaikan</strong> dan stoknya tidak berubah</li>
-          <li>Klik <strong>"Simpan Semua"</strong> untuk memperbarui stok sekaligus</li>
-        </ul>
+      {/* Compact Info Pill Banner */}
+      <div className="bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 rounded-xl px-4 py-3 text-xs text-indigo-900 dark:text-indigo-200 flex items-center gap-2.5">
+        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 flex-shrink-0 animate-pulse" />
+        <p>
+          <span className="font-semibold">Petunjuk:</span> Masukkan jumlah unit yang <strong>ingin ditambahkan</strong>. Kolom bernilai 0 akan diabaikan secara otomatis saat disimpan.
+        </p>
       </div>
 
       {/* Restock Form */}
