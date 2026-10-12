@@ -1,5 +1,6 @@
 import { DashboardShell } from '@/components/DashboardShell'
 import prisma from '@/lib/db'
+import { getSession } from '@/lib/session'
 import { Suspense } from 'react'
 
 // Komponen async terpisah — tidak blocking shell render
@@ -34,8 +35,6 @@ async function LowStockLoader({ children, user }: { children: (data: any[]) => R
 
   return <>{children(lowStockData)}</>
 }
-
-import { getSession } from '@/lib/session'
 
 export default async function DashboardLayout({
   children,

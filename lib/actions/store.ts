@@ -56,41 +56,6 @@ export async function createStore(formData: FormData) {
   }
 }
 
-export async function updateStore(id: string, formData: FormData) {
-  const user = await getSessionUser()
-  if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' }
-
-  const name = (formData.get('name') as string)?.trim()
-  const location = (formData.get('location') as string)?.trim() || null
-
-  if (!name) return { error: 'Nama toko wajib diisi' }
-
-  try {
-    const updated = await prisma.store.update({
-      where: { id },
-      data: { name, location }
-    })
-
-    await writeAuditLog({
-      userId: user.id,
-      username: user.username,
-      action: 'UPDATE_STORE',
-      entityType: 'Store',
-      entityId: id,
-      entityName: updated.name,
-      detail: { location }
-    })
-
-    revalidatePath('/stores')
-    revalidatePath(`/stores/${id}`)
-    revalidatePath('/')
-    return { success: true, store: updated }
-  } catch (error: any) {
-    console.error('Error updateStore:', error)
-    return { error: error?.message || 'Gagal mengedit toko' }
-  }
-}
-
 export async function deleteStore(id: string) {
   const user = await getSessionUser()
   if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' }

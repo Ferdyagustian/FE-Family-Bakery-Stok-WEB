@@ -44,3 +44,7 @@ next-env.d.ts
 
 .vercel
 new_skills/
+
+# mcp configs with tokens
+mcp_config.json
+.agents/mcp_config.json

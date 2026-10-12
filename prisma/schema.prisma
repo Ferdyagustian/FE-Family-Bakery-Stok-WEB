@@ -72,6 +72,10 @@ model Sale {
   id            String   @id @default(cuid())
   storeId       String
   productId     String
+  receiptNo     String?
+  paymentMethod String?
+  cashPaid      Float?
+  change        Float?
   quantitySold  Int
   totalAmount   Float
   profitAmount  Float
@@ -83,6 +87,7 @@ model Sale {
   @@index([storeId])
   @@index([productId])
   @@index([storeId, saleDate])
+  @@index([receiptNo])
 }
 
 model AuditLog {

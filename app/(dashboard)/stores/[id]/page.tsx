@@ -8,7 +8,7 @@ import { DeleteStoreButton } from '@/components/DeleteStoreButton'
 import { getSession } from '@/lib/session'
 import { ManageStoreUsers } from '@/components/ManageStoreUsers'
 
-export const revalidate = 30
+export const revalidate = 0
 
 export default async function StoreDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: storeId } = await params
@@ -18,7 +18,6 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
     include: {
       storeProducts: {
         include: { product: true },
-        orderBy: { createdAt: 'desc' }
       },
       users: { select: { id: true, name: true, username: true } },
     }
@@ -33,11 +32,20 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
 
   if (!store) notFound()
 
-  // Mapped back to product format for the UI components
-  const storeProductsList = store.storeProducts.map(sp => ({
-    ...sp.product,
-    stockQuantity: sp.stockQuantity,
-  }))
+  // Mapped back to product format & urutkan: Stok > 0 di atas, lalu urut alfabetis A-Z
+  const storeProductsList = store.storeProducts
+    .map(sp => ({
+      ...sp.product,
+      stockQuantity: sp.stockQuantity,
+    }))
+    .sort((a, b) => {
+      const stockA = Number(a.stockQuantity) > 0 ? 1 : 0
+      const stockB = Number(b.stockQuantity) > 0 ? 1 : 0
+      if (stockA !== stockB) {
+        return stockB - stockA // Stok ada di atas
+      }
+      return a.name.localeCompare(b.name, 'id', { sensitivity: 'base' })
+    })
 
   return (
     <div className="space-y-5">

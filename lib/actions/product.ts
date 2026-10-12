@@ -183,7 +183,16 @@ export async function updateProduct(formData: FormData) {
 
 
 // ── 5. Record Bulk Sales (Keranjang Kasir) ───────────────────────────
-export async function recordBulkSales(items: { productId: string; quantity: number }[], storeId: string) {
+export async function recordBulkSales(
+  items: { productId: string; quantity: number }[],
+  storeId: string,
+  receiptInfo?: {
+    receiptNo?: string
+    paymentMethod?: 'Tunai' | 'QRIS' | 'Transfer'
+    cashPaid?: number
+    change?: number
+  }
+) {
   try {
     await assertStoreAccess(storeId)
   } catch {
@@ -227,8 +236,8 @@ export async function recordBulkSales(items: { productId: string; quantity: numb
         const sp = spMap.get(item.productId)!
         const discount = sp.product.discount || 0
         const effectivePrice = sp.product.price * (1 - discount / 100)
-        const totalAmount = effectivePrice * item.quantity
-        const profitAmount = totalAmount * 0.35
+        const totalAmount = Math.round(effectivePrice * item.quantity)
+        const profitAmount = Math.round(totalAmount * 0.35)
 
         // Potong stok
         await tx.storeProduct.update({
@@ -236,7 +245,7 @@ export async function recordBulkSales(items: { productId: string; quantity: numb
           data: { stockQuantity: { decrement: item.quantity } }
         })
 
-        // Catat penjualan
+        // Catat penjualan dengan nomor resi dan metode bayar
         await tx.sale.create({
           data: {
             storeId,
@@ -244,7 +253,11 @@ export async function recordBulkSales(items: { productId: string; quantity: numb
             quantitySold: item.quantity,
             totalAmount,
             profitAmount,
-            saleDate: now
+            saleDate: now,
+            receiptNo: receiptInfo?.receiptNo ?? null,
+            paymentMethod: receiptInfo?.paymentMethod ?? 'Tunai',
+            cashPaid: receiptInfo?.cashPaid ?? null,
+            change: receiptInfo?.change ?? null,
           }
         })
       }
@@ -256,7 +269,12 @@ export async function recordBulkSales(items: { productId: string; quantity: numb
       action: 'RECORD_SALE',
       entityType: 'Sale',
       storeId,
-      detail: { itemCount: items.length, items }
+      detail: { 
+        receiptNo: receiptInfo?.receiptNo,
+        paymentMethod: receiptInfo?.paymentMethod,
+        itemCount: items.length, 
+        items 
+      }
     })
 
     revalidatePath(`/stores/${storeId}`)
@@ -266,6 +284,83 @@ export async function recordBulkSales(items: { productId: string; quantity: numb
   } catch (error: any) {
     console.error('Error recordBulkSales:', error)
     return { error: error?.message || 'Gagal memproses transaksi kasir' }
+  }
+}
+
+// ── 5.1 Verify Receipt (Validasi Keaslian Struk) ────────────────────────
+export async function verifyReceipt(receiptNo: string) {
+  if (!receiptNo || typeof receiptNo !== 'string') {
+    return { valid: false, error: 'Nomor resi tidak valid' }
+  }
+
+  const cleanNo = receiptNo.trim()
+  if (!cleanNo) {
+    return { valid: false, error: 'Nomor resi tidak boleh kosong' }
+  }
+
+  try {
+    const sales = await prisma.sale.findMany({
+      where: { receiptNo: cleanNo },
+      include: {
+        product: { select: { id: true, name: true, price: true, discount: true, imageUrl: true } },
+        store: { select: { id: true, name: true, location: true } }
+      },
+      orderBy: { saleDate: 'asc' }
+    })
+
+    if (!sales || sales.length === 0) {
+      return { 
+        valid: false, 
+        error: `Nomor struk "${cleanNo}" TIDAK DITEMUKAN di database. Kemungkinan struk ini palsu atau salah nomor.` 
+      }
+    }
+
+    const firstSale = sales[0]
+    const store = firstSale.store
+    const saleDate = firstSale.saleDate
+    const paymentMethod = firstSale.paymentMethod || 'Tunai'
+    const cashPaid = firstSale.cashPaid ?? 0
+    const change = firstSale.change ?? 0
+
+    const items = sales.map(s => {
+      const discount = s.product.discount || 0
+      const price = s.product.price
+      const effectivePrice = price * (1 - discount / 100)
+      return {
+        id: s.id,
+        productId: s.productId,
+        name: s.product.name,
+        price,
+        discount,
+        quantity: s.quantitySold,
+        total: s.totalAmount,
+        imageUrl: s.product.imageUrl
+      }
+    })
+
+    const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    const grandTotal = items.reduce((sum, item) => sum + item.total, 0)
+    const discountTotal = Math.max(0, subtotal - grandTotal)
+
+    return {
+      valid: true,
+      data: {
+        receiptNo: cleanNo,
+        date: saleDate.toISOString(),
+        storeName: store?.name || 'Family Bakery',
+        storeLocation: store?.location || null,
+        items,
+        subtotal,
+        discountTotal,
+        grandTotal,
+        paymentMethod,
+        cashPaid,
+        change,
+      }
+    }
+  } catch (error: any) {
+    console.error('Error verifyReceipt:', error)
+    return { valid: false, error: 'Terjadi kesalahan sistem saat memverifikasi struk' }
   }
 }
 
@@ -454,10 +549,6 @@ export async function deleteStoreProduct(storeId: string, productId: string) {
     console.error('Error deleteStoreProduct:', error)
     return { error: error?.message || 'Gagal menghapus produk dari cabang' }
   }
-}
-
-export async function removeStoreProduct(storeId: string, productId: string) {
-  return deleteStoreProduct(storeId, productId)
 }
 
 // ── 11. Bulk Restock Products ───────────────────────────────────────

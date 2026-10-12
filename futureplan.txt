@@ -1,0 +1,166 @@
+================================================================================
+             RENCANA PENGEMBANGAN SISTEM MASA DEPAN (FUTURE PLAN)
+                     FAMILY BAKERY - SISTEM MANAJEMEN STOK WEB
+================================================================================
+Tanggal Dibuat  : 12 Oktober 2026
+Versi Dokumen   : 1.0.0
+Status          : Backlog & Rencana Pengembangan Lanjutan
+================================================================================
+
+Dokumen ini merangkum seluruh daftar kekurangan, kebutuhan teknis yang belum
+tersedia, serta peta jalan (roadmap) pengembangan lanjutan untuk aplikasi
+Family Bakery. Catatan ini disusun berdasarkan analisis operasional kasir,
+manajemen stok bakery, dan akuntansi bisnis.
+
+================================================================================
+I. DAFTAR KEKURANGAN & MASALAH YANG PERLU DISELESAIKAN (GAP ANALYSIS)
+================================================================================
+
+--------------------------------------------------------------------------------
+1. TINGKAT PRIORITAS TINGGI (High Priority)
+   Berdampak langsung pada operasional kasir harian, akurasi laba, dan data
+--------------------------------------------------------------------------------
+
+1.1 Manajemen Resep, Bahan Baku & Perhitungan HPP Nyata (COGS)
+    - Kondisi Saat Ini : Laba bersih (profit) masih menggunakan estimasi persentase
+      atau selisih sederhana. Belum ada pencatatan bahan mentah (tepung terigu,
+      mentega, ragi, telur, gula, cokelat meses).
+    - Masalah         : Pemilik bisnis tidak mengetahui HPP (Harga Pokok Produksi)
+      riil per potong roti, dan stok bahan baku di gudang tidak terpantau.
+    - Rencana Solusi  :
+      * Buat tabel database: `RawMaterial` (Bahan Baku), `Recipe` (Resep Roti),
+        dan `RecipeItem` (Komposisi Takaran per Roti).
+      * Otomasi: Setiap batch roti dipanggang atau terjual, stok bahan baku
+        berkurang otomatis sesuai takaran resep.
+      * Hitung margin keuntungan bersih secara presisi berdasarkan harga beli bahan.
+
+1.2 Dukungan Operasional Offline / PWA (Progressive Web App)
+    - Kondisi Saat Ini : Aplikasi 100% bergantung pada koneksi internet cloud
+      (Supabase + Vercel).
+    - Masalah         : Jika koneksi internet di gerai/cabang terputus saat jam
+      sibuk, kasir tidak dapat melayani transaksi pelanggan, antrean menumpuk,
+      dan omzet tidak tercatat.
+    - Rencana Solusi  :
+      * Implementasi PWA dengan Service Worker dan manifest web app.
+      * Penyimpanan lokal peramban (IndexedDB / LocalStorage) untuk antrean transaksi
+        saat offline (Offline-First POS).
+      * Sinkronisasi data otomatis (Background Sync) ke Supabase begitu koneksi
+        internet kembali terhubung.
+
+1.3 Integrasi Payment Gateway Otomatis (QRIS Dinamis & Virtual Account)
+    - Kondisi Saat Ini : Pembayaran QRIS dan Transfer Bank masih diverifikasi
+      manual oleh kasir dengan melihat layar smartphone pelanggan.
+    - Masalah         : Berisiko kelalaian kasir atau penipuan bukti transfer palsu
+      pada jam-jam ramai.
+    - Rencana Solusi  :
+      * Integrasi API Payment Gateway resmi (contoh: Midtrans atau Xendit).
+      * Sistem otomatis menampilkan QRIS dinamis unik di layar/struk dan menerima
+        Webhook callback instan saat dana berhasil masuk ke rekening perusahaan.
+
+1.4 Pengujian Otomatis Kode (Automated Unit & E2E Testing)
+    - Kondisi Saat Ini : Belum ada berkas pengujian otomatis di repositori.
+    - Masalah         : Risiko munculnya bug atau salah hitung finansial (regresi)
+      saat pengembang melakukan pembaruan fitur baru.
+    - Rencana Solusi  :
+      * Konfigurasi Vitest / Jest untuk unit test fungsi kalkulasi harga, diskon,
+        pajak, dan mutasi stok.
+      * Konfigurasi Playwright untuk E2E testing alur login, kasir checkout,
+        dan cetak struk.
+
+--------------------------------------------------------------------------------
+2. TINGKAT PRIORITAS MENENGAH (Medium Priority)
+   Berdampak pada kecepatan kerja kasir, kerapian data, dan pengadaan barang
+--------------------------------------------------------------------------------
+
+2.1 Manajemen Kategori Produk (Product Categories)
+    - Kondisi Saat Ini : Semua menu roti berada dalam satu daftar datar (flat list).
+    - Masalah         : Saat varian menu bertambah menjadi ratusan, staf kasir
+      kesulitan memilih menu selain dengan mengetik di pencarian.
+    - Rencana Solusi  :
+      * Buat model `Category` (Roti Manis, Roti Tawar, Cake/Tart, Pastry, Minuman).
+      * Tampilkan bilah tab filter kategori di antarmuka kasir agar kasir cukup
+        sekali klik untuk menyaring varian roti.
+
+2.2 Manajemen Pemasok & Pembelian Bahan Baku (Supplier & Purchase Orders)
+    - Kondisi Saat Ini : Pembelian bahan baku ke toko luar/pabrik dicatat manual.
+    - Masalah         : Riwayat harga beli dari vendor, kontak supplier, dan utang
+      jatuh tempo belum terintegrasi ke sistem.
+    - Rencana Solusi  :
+      * Modul daftar Supplier (Nama PT, Kontak, Alamat).
+      * Modul Purchase Order (PO): Catat pemesanan, penerimaan barang, dan tanggal
+        jatuh tempo pembayaran ke supplier.
+
+2.3 Integrasi Pemindai Barcode / QR Scanner Fisik
+    - Kondisi Saat Ini : Kasir memilih produk dengan mengetik atau mengklik kartu.
+    - Masalah         : Kecepatan pelayanan kasir berkurang dibandingkan retail
+      modern yang menggunakan scanner tembak.
+    - Rencana Solusi  :
+      * Tambahkan kolom kode `barcode` pada katalog master produk.
+      * Tambahkan event listener global di halaman kasir untuk menangkap input
+        dari hardware barcode scanner USB/Bluetooth dan langsung menambahkannya
+        ke keranjang belanja.
+
+2.4 Mesin Diskon & Promosi Dinamis (Promotion Engine)
+    - Kondisi Saat Ini : Hanya mendukung persentase diskon statis per produk.
+    - Masalah         : Tidak dapat menjalankan strategi pemasaran bakery modern.
+    - Rencana Solusi  :
+      * Promo Beli 2 Gratis 1 (Buy X Get Y).
+      * Diskon Happy Hour Otomatis (misal: potongan 20% khusus transaksi di atas
+        jam 20:00 untuk menghabiskan stok roti harian agar tidak basi).
+      * Kupon potongan belanja / voucher khusus.
+
+--------------------------------------------------------------------------------
+3. TINGKAT PRIORITAS RENDAH (Low Priority)
+   Peningkatan loyalitas konsumen, pembukuan lanjut, dan fleksibilitas bayar
+--------------------------------------------------------------------------------
+
+3.1 Program Loyalitas & CRM Pelanggan (Customer Membership)
+    - Masalah         : Penjualan melayani pembeli secara anonim. Toko tidak
+      mengetahui siapa pelanggan paling setia.
+    - Rencana Solusi  :
+      * Pendaftaran member via nomor WhatsApp / nama.
+      * Akumulasi poin belanja setiap transaksi yang dapat ditukar dengan roti gratis.
+      * Pengiriman ucapan diskon ulang tahun ke pelanggan.
+
+3.2 Modul Beban Operasional Toko (OPEX) & Laporan Laba Rugi Akuntansi Lengkap
+    - Masalah         : Laporan saat ini hanya merekam penjualan dan stok barang.
+      Belum ada pencatatan beban toko (sewa gerai, tagihan listrik, gaji karyawan,
+      kantong kresek/dus roti).
+    - Rencana Solusi  :
+      * Modul input kas keluar / beban operasional.
+      * Laporan Laba Rugi Komprehensif (Pendapatan Kotor - HPP - Beban Operasional = Laba Bersih).
+
+3.3 Pembayaran Terpisah (Multi-Tender / Split Bill)
+    - Masalah         : Satu transaksi kasir saat ini harus diselesaikan 100% Tunai
+      atau 100% Non-Tunai.
+    - Rencana Solusi  :
+      * Kasir dapat membagi tagihan (misal: total Rp 80.000 -> Rp 30.000 tunai +
+        Rp 50.000 QRIS).
+
+================================================================================
+II. PETA JALAN PENGEMBANGAN (ROADMAP FASE IMPLEMENTASI)
+================================================================================
+
+FASE 1 (Bulan 1 - 2) : Optimalisasi Kasir & Integritas Transaksi
+  [✓] Pengurutan Produk: Stok ada selalu di atas + abjad A-Z.
+  [✓] Penyimpanan & Pelacakan Nomor Resi Struk di Database (Anti-Fraud).
+  [ ] Implementasi Kategori Produk (Tab Filter di Layar Kasir).
+  [ ] Dukungan Hardware Barcode Scanner.
+  [ ] Penyiapan Unit Test Vitest untuk logika finansial kasir.
+
+FASE 2 (Bulan 3 - 5) : Bahan Baku, PWA Offline & Pengadaan
+  [ ] Modul Resep & Pengurangan Stok Bahan Mentah Otomatis (Perhitungan HPP Asli).
+  [ ] Modul Manajemen Supplier & Purchase Order (PO).
+  [ ] PWA Offline Mode dengan sinkronisasi otomatis saat online kembali.
+  [ ] Promo Dinamis (Happy Hour & Diskon Waktu Malam).
+
+FASE 3 (Bulan 6+) : Otomasi Digital & Skalabilitas Enterprise
+  [ ] Integrasi Payment Gateway QRIS Dinamis (Midtrans / Xendit).
+  [ ] Modul CRM & Loyalitas Poin Belanja Pelanggan.
+  [ ] Modul Beban Operasional (OPEX) dan Neraca Laba Rugi Lengkap.
+  [ ] Otomasi Pengadaan Bahan Baku berbasis saran AI TimesFM Engine.
+  [ ] Aplikasi Mobile Tablet Khusus Kasir & Owner.
+
+================================================================================
+                    AKHIR DOKUMEN RENCANA PENGEMBANGAN
+================================================================================

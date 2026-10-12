@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Package, Tag, ShoppingCart, Minus, Plus, Percent, CheckCircle2, Trash2, AlertTriangle } from 'lucide-react'
+import { Package, ShoppingCart, Minus, Plus, Percent, CheckCircle2, Trash2, AlertTriangle } from 'lucide-react'
 import Image from 'next/image'
-import { removeStoreProduct } from '@/lib/actions/product'
+import { deleteStoreProduct } from '@/lib/actions/product'
 import { toast } from 'sonner'
-import { formatFullRupiah } from '@/lib/format'
 
 export function ProductCard({ 
   product, 
@@ -48,7 +47,7 @@ export function ProductCard({
 
   const handleDelete = () => {
     startTransition(async () => {
-      const res = await removeStoreProduct(storeId, product.id)
+      const res = await deleteStoreProduct(storeId, product.id)
       if (res?.error) {
         toast.error(res.error)
       } else {

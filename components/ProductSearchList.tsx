@@ -4,7 +4,8 @@ import { useState, useTransition } from 'react'
 import { ProductCard } from '@/components/ProductCard'
 import { PaymentModal } from '@/components/PaymentModal'
 import { ReceiptModal, ReceiptData } from '@/components/ReceiptModal'
-import { Package, Search, LayoutGrid, List, ShoppingCart, X, Plus, Minus, Trash2, PackageOpen, ArrowRight } from 'lucide-react'
+import { VerifyReceiptModal } from '@/components/VerifyReceiptModal'
+import { Package, Search, LayoutGrid, List, ShoppingCart, X, Plus, Minus, Trash2, PackageOpen, ArrowRight, Receipt } from 'lucide-react'
 import { toast } from 'sonner'
 import { recordBulkSales } from '@/lib/actions/product'
 
@@ -34,6 +35,7 @@ export function ProductSearchList({
   // --- Modal States ---
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false)
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false)
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null)
 
   const handleAddToCart = (product: any, qty: number) => {
@@ -76,21 +78,26 @@ export function ProductSearchList({
     cashPaid: number
     change: number
   }) => {
+    // Generate nomor resi unik (Contoh: FB-20261012-1042)
+    const now = new Date()
+    const y = now.getFullYear()
+    const m = String(now.getMonth() + 1).padStart(2, '0')
+    const d = String(now.getDate()).padStart(2, '0')
+    const rand = Math.floor(1000 + Math.random() * 9000)
+    const receiptNo = `FB-${y}${m}${d}-${rand}`
+
     startTransition(async () => {
       const items = cart.map(item => ({ productId: item.product.id, quantity: item.quantity }))
-      const res = await recordBulkSales(items, storeId)
+      const res = await recordBulkSales(items, storeId, {
+        receiptNo,
+        paymentMethod: payment.paymentMethod,
+        cashPaid: payment.cashPaid,
+        change: payment.change,
+      })
       
       if (res?.error) {
         toast.error(res.error)
       } else {
-        // Generate nomor resi unik (Contoh: FB-20260814-1042)
-        const now = new Date()
-        const y = now.getFullYear()
-        const m = String(now.getMonth() + 1).padStart(2, '0')
-        const d = String(now.getDate()).padStart(2, '0')
-        const rand = Math.floor(1000 + Math.random() * 9000)
-        const receiptNo = `FB-${y}${m}${d}-${rand}`
-
         const receiptItems = cart.map(item => {
           const discountPct = item.product.discount || 0
           const effectivePrice = item.product.price * (1 - discountPct / 100)
@@ -137,9 +144,23 @@ export function ProductSearchList({
     return sum + (effectivePrice * item.quantity)
   }, 0)
 
-  const filteredProducts = products.filter(product => 
-    product.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // ── Sort: Stok Tersedia (> 0) di Atas, lalu urut Alfabetis A-Z ──
+  const filteredProducts = products
+    .filter(product => 
+      product.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => {
+      const stockA = Number(a.stockQuantity || 0) > 0 ? 1 : 0
+      const stockB = Number(b.stockQuantity || 0) > 0 ? 1 : 0
+
+      // Prioritas 1: Produk yang stoknya ada selalu di atas
+      if (stockA !== stockB) {
+        return stockB - stockA
+      }
+
+      // Prioritas 2: Urutkan secara alfabetis A sampai Z
+      return a.name.localeCompare(b.name, 'id', { sensitivity: 'base' })
+    })
 
   return (
     <div className="space-y-4">
@@ -158,29 +179,41 @@ export function ProductSearchList({
           />
         </div>
 
-        <div className="flex items-center bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-full sm:w-auto border border-gray-200/60 dark:border-gray-700/60">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {/* Tombol Validasi Struk */}
           <button
-            onClick={() => setViewMode('grid')}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              viewMode === 'grid'
-                ? 'bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-            }`}
+            onClick={() => setIsVerifyModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-xs"
+            title="Cek keaslian struk penjualan"
           >
-            <LayoutGrid className="w-3.5 h-3.5" />
-            <span>Grid</span>
+            <Receipt className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <span>Cek Struk</span>
           </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              viewMode === 'list'
-                ? 'bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-            }`}
-          >
-            <List className="w-3.5 h-3.5" />
-            <span>List</span>
-          </button>
+
+          <div className="flex items-center bg-gray-100 dark:bg-gray-800 p-1 rounded-xl flex-1 sm:flex-none border border-gray-200/60 dark:border-gray-700/60">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === 'grid'
+                  ? 'bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Grid</span>
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === 'list'
+                  ? 'bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+              }`}
+            >
+              <List className="w-3.5 h-3.5" />
+              <span>List</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -354,6 +387,12 @@ export function ProductSearchList({
           setReceiptData(null)
         }}
         data={receiptData}
+      />
+
+      {/* ── 3. Verify Receipt Modal (Cek Keaslian Struk) ── */}
+      <VerifyReceiptModal
+        isOpen={isVerifyModalOpen}
+        onClose={() => setIsVerifyModalOpen(false)}
       />
     </div>
   )
