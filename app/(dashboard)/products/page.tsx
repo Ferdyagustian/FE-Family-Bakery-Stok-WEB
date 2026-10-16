@@ -1,6 +1,5 @@
 import prisma from '@/lib/db'
 import { getSession } from '@/lib/session'
-import { Package, TrendingUp } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { AddMasterProductModal } from '@/components/AddMasterProductModal'
 import { BulkPriceAdjustModal } from '@/components/BulkPriceAdjustModal'

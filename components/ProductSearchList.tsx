@@ -5,7 +5,7 @@ import { ProductCard } from '@/components/ProductCard'
 import { PaymentModal } from '@/components/PaymentModal'
 import { ReceiptModal, ReceiptData } from '@/components/ReceiptModal'
 import { VerifyReceiptModal } from '@/components/VerifyReceiptModal'
-import { Package, Search, LayoutGrid, List, ShoppingCart, X, Plus, Minus, Trash2, PackageOpen, ArrowRight, Receipt } from 'lucide-react'
+import { Search, LayoutGrid, List, ShoppingCart, X, Plus, Minus, Trash2, PackageOpen, ArrowRight, Receipt } from 'lucide-react'
 import { toast } from 'sonner'
 import { recordBulkSales } from '@/lib/actions/product'
 
@@ -83,7 +83,7 @@ export function ProductSearchList({
     const y = now.getFullYear()
     const m = String(now.getMonth() + 1).padStart(2, '0')
     const d = String(now.getDate()).padStart(2, '0')
-    const rand = Math.floor(1000 + Math.random() * 9000)
+    const rand = String(now.getTime()).slice(-4)
     const receiptNo = `FB-${y}${m}${d}-${rand}`
 
     startTransition(async () => {

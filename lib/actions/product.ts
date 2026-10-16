@@ -239,11 +239,21 @@ export async function recordBulkSales(
         const totalAmount = Math.round(effectivePrice * item.quantity)
         const profitAmount = Math.round(totalAmount * 0.35)
 
-        // Potong stok
-        await tx.storeProduct.update({
-          where: { storeId_productId: { storeId, productId: item.productId } },
-          data: { stockQuantity: { decrement: item.quantity } }
+        // Potong stok bersyarat secara atomik (Mencegah Race Condition stok minus)
+        const updateResult = await tx.storeProduct.updateMany({
+          where: {
+            storeId,
+            productId: item.productId,
+            stockQuantity: { gte: item.quantity }
+          },
+          data: {
+            stockQuantity: { decrement: item.quantity }
+          }
         })
+
+        if (updateResult.count === 0) {
+          throw new Error(`Stok untuk produk "${sp.product.name}" tidak mencukupi atau telah berkurang saat transaksi sedang diproses.`)
+        }
 
         // Catat penjualan dengan nomor resi dan metode bayar
         await tx.sale.create({
@@ -325,7 +335,6 @@ export async function verifyReceipt(receiptNo: string) {
     const items = sales.map(s => {
       const discount = s.product.discount || 0
       const price = s.product.price
-      const effectivePrice = price * (1 - discount / 100)
       return {
         id: s.id,
         productId: s.productId,
@@ -372,8 +381,14 @@ export async function deleteMasterProduct(id: string) {
   try {
     const product = await prisma.product.findUnique({ where: { id }, select: { name: true } })
 
+    const salesCount = await prisma.sale.count({ where: { productId: id } })
+    if (salesCount > 0) {
+      return {
+        error: `Produk "${product?.name || id}" telah memiliki catatan riwayat transaksi penjualan. Produk tidak dapat dihapus permanen untuk menjaga keaslian pembukuan keuangan. Anda dapat mengubah nama produk atau menyetel stoknya menjadi 0.`
+      }
+    }
+
     await prisma.$transaction([
-      prisma.sale.deleteMany({ where: { productId: id } }),
       prisma.storeProduct.deleteMany({ where: { productId: id } }),
       prisma.product.delete({ where: { id } })
     ])
@@ -476,47 +491,6 @@ export async function adjustAllPrices(
   }
 }
 
-// ── 9. Restock Product in Store ─────────────────────────────────────
-export async function restockProduct(storeId: string, productId: string, quantity: number) {
-  try {
-    await assertStoreAccess(storeId)
-  } catch {
-    return { error: 'Unauthorized or Forbidden' }
-  }
-
-  if (isNaN(quantity) || quantity <= 0) {
-    return { error: 'Jumlah restock harus lebih dari 0' }
-  }
-
-  try {
-    const user = await getSessionUser()
-
-    const updated = await prisma.storeProduct.update({
-      where: { storeId_productId: { storeId, productId } },
-      data: { stockQuantity: { increment: quantity } },
-      include: { product: { select: { name: true } } }
-    })
-
-    await writeAuditLog({
-      userId: user?.id,
-      username: user?.username,
-      action: 'RESTOCK_PRODUCT',
-      entityType: 'StoreProduct',
-      entityId: productId,
-      entityName: updated.product.name,
-      storeId,
-      detail: { quantityAdded: quantity, newStock: updated.stockQuantity }
-    })
-
-    revalidatePath(`/stores/${storeId}`)
-    revalidatePath('/stores')
-    revalidatePath('/')
-    return { success: true }
-  } catch (error: any) {
-    console.error('Error restockProduct:', error)
-    return { error: error?.message || 'Gagal menambah stok' }
-  }
-}
 
 // ── 10. Delete Product from Store ───────────────────────────────────
 export async function deleteStoreProduct(storeId: string, productId: string) {

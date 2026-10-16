@@ -12,13 +12,14 @@ export async function clearAuditLogs(daysToKeep: number) {
   }
 
   try {
-    const whereClause: any = {}
-    if (daysToKeep > 0) {
-      const cutoffDate = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000)
-      whereClause.createdAt = { lt: cutoffDate }
+    if (!daysToKeep || typeof daysToKeep !== 'number' || daysToKeep < 7) {
+      return { error: 'Log audit hanya dapat dibersihkan untuk data yang telah berusia lebih dari 7 hari demi kepatuhan forensik keamanan.' }
     }
 
-    const res = await prisma.auditLog.deleteMany({ where: whereClause })
+    const cutoffDate = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000)
+    const res = await prisma.auditLog.deleteMany({ 
+      where: { createdAt: { lt: cutoffDate } } 
+    })
 
     await writeAuditLog({
       userId: session.user.id,

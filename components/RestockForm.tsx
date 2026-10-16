@@ -2,10 +2,8 @@
 
 import { useState } from 'react'
 import { bulkRestockProducts } from '@/lib/actions/product'
-import { useRouter } from 'next/navigation'
-import { Package, RotateCcw, CheckCircle2, AlertCircle, Search, ArrowUpRight, Plus } from 'lucide-react'
+import { Package, RotateCcw, CheckCircle2, AlertCircle, Search, ArrowUpRight } from 'lucide-react'
 import Image from 'next/image'
-import { formatFullRupiah } from '@/lib/format'
 
 type Product = {
   id: string
@@ -20,7 +18,6 @@ export function RestockForm({ products, storeId }: { products: Product[], storeI
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [search, setSearch] = useState('')
-  const router = useRouter()
 
   const updateQty = (id: string, val: string) => {
     if (val === '' || /^\d+$/.test(val)) {

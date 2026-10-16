@@ -18,7 +18,7 @@ export async function decrypt(input: string): Promise<any> {
       algorithms: ['HS256'],
     })
     return payload
-  } catch (error) {
+  } catch {
     return null
   }
 }

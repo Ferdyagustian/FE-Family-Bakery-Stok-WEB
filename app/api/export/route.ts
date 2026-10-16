@@ -15,17 +15,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let targetStoreId = storeId;
+    let targetStoreId: string | undefined = undefined;
     if (session.user.role === 'MANAGER') {
-      targetStoreId = session.user.storeId || undefined;
-    } else if (session.user.role !== 'ADMIN' && !targetStoreId) {
+      if (!session.user.storeId) {
+        return NextResponse.json({ error: "Forbidden: Akun Manager tidak terhubung ke cabang manapun" }, { status: 403 });
+      }
+      targetStoreId = session.user.storeId;
+    } else if (session.user.role === 'ADMIN') {
+      targetStoreId = storeId || undefined;
+    } else {
       return NextResponse.json({ error: "Forbidden: Akses ditolak" }, { status: 403 });
     }
 
     if (targetStoreId) {
       try {
         await assertStoreAccess(targetStoreId);
-      } catch (err) {
+      } catch {
         return NextResponse.json({ error: "Forbidden: Access denied to this store" }, { status: 403 });
       }
     }
@@ -53,7 +58,7 @@ export async function GET(request: NextRequest) {
 
       const sales = await prisma.sale.findMany({
         where: {
-          ...(storeId ? { storeId } : {}),
+          ...(targetStoreId ? { storeId: targetStoreId } : {}),
           ...(Object.keys(dateFilter).length > 0
             ? { saleDate: dateFilter }
             : {}),
@@ -82,7 +87,7 @@ export async function GET(request: NextRequest) {
     // ── Export: Stok Produk ──────────────────────
     if (type === "stock") {
       const products = await prisma.storeProduct.findMany({
-        where: storeId ? { storeId } : {},
+        where: targetStoreId ? { storeId: targetStoreId } : {},
         include: { product: true, store: true },
         orderBy: [{ store: { name: 'asc' } }, { product: { name: 'asc' } }],
       });

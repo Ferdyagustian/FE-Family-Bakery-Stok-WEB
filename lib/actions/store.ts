@@ -63,8 +63,14 @@ export async function deleteStore(id: string) {
   try {
     const store = await prisma.store.findUnique({ where: { id }, select: { name: true } })
 
+    const salesCount = await prisma.sale.count({ where: { storeId: id } })
+    if (salesCount > 0) {
+      return {
+        error: `Cabang "${store?.name || id}" telah memiliki riwayat catatan transaksi penjualan. Cabang tidak dapat dihapus permanen agar pembukuan dan riwayat omzet historis tetap terjaga.`
+      }
+    }
+
     await prisma.$transaction([
-      prisma.sale.deleteMany({ where: { storeId: id } }),
       prisma.storeProduct.deleteMany({ where: { storeId: id } }),
       prisma.user.deleteMany({ where: { storeId: id } }),
       prisma.store.delete({ where: { id } })

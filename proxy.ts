@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { jwtVerify } from 'jose'
 
-const secretKey = process.env.JWT_SECRET || 'family-bakery-super-secret-key-change-in-prod'
-const key = new TextEncoder().encode(secretKey)
+const secretKey = process.env.JWT_SECRET
+const key = secretKey ? new TextEncoder().encode(secretKey) : null
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const session = request.cookies.get('session')?.value
   const { pathname } = request.nextUrl
 
@@ -16,6 +16,11 @@ export async function middleware(request: NextRequest) {
 
   if (!session) {
     return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  if (!key) {
+    console.error('[Security Error] JWT_SECRET is not configured in proxy environment.')
+    return new NextResponse('Internal Server Security Configuration Error', { status: 500 })
   }
 
   try {
@@ -40,14 +45,18 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/login', request.url))
       }
 
-      // If manager tries to access another store's page
-      if (pathname.startsWith('/stores/') && !pathname.startsWith(`/stores/${user.storeId}`)) {
-        return NextResponse.redirect(new URL(`/stores/${user.storeId}`, request.url))
+      // If manager tries to access another store's page (exact segment match)
+      if (pathname.startsWith('/stores/')) {
+        const pathSegments = pathname.split('/').filter(Boolean)
+        const targetStoreId = pathSegments[1]
+        if (targetStoreId && targetStoreId !== user.storeId) {
+          return NextResponse.redirect(new URL(`/stores/${user.storeId}`, request.url))
+        }
       }
     }
 
     return NextResponse.next()
-  } catch (error) {
+  } catch {
     // Invalid token
     return NextResponse.redirect(new URL('/login', request.url))
   }

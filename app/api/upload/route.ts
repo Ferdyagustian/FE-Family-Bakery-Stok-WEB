@@ -31,12 +31,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "File size exceeds 5MB limit." }, { status: 400 });
     }
 
+    const extensionMap: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp'
+    };
+    const safeExtension = extensionMap[file.type];
+    if (!safeExtension) {
+      return NextResponse.json({ success: false, error: "Tipe file tidak didukung." }, { status: 400 });
+    }
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Bikin nama file unik
-    const fileExtension = file.name.split('.').pop() || 'jpg';
-    const fileName = `${crypto.randomUUID()}.${fileExtension}`;
+    // Verifikasi Magic Bytes (Header biner sebenarnya dari file gambar)
+    let isMagicValid = false;
+    if (buffer.length >= 12) {
+      if (file.type === 'image/jpeg' && buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
+        isMagicValid = true;
+      } else if (file.type === 'image/png' && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
+        isMagicValid = true;
+      } else if (file.type === 'image/webp' && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') {
+        isMagicValid = true;
+      }
+    }
+
+    if (!isMagicValid) {
+      return NextResponse.json({ success: false, error: "Konten file tidak valid atau bukan gambar asli." }, { status: 400 });
+    }
+
+    // Nama file unik dengan ekstensi tervalidasi
+    const fileName = `${crypto.randomUUID()}.${safeExtension}`;
     
     // Upload ke Supabase Storage bucket 'products'
     const { error: uploadError } = await supabase

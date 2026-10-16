@@ -1,6 +1,6 @@
 import { loginAction } from '@/lib/actions/auth'
 import { PasswordInput } from '@/components/PasswordInput'
-import { AlertCircle, Lock, User } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 
 type SearchParams = Promise<{ error?: string }>
 
@@ -10,10 +10,11 @@ export default async function LoginPage(props: { searchParams: SearchParams }) {
 
   const errorMessages: Record<string, string> = {
     EmptyFields: 'Username dan password tidak boleh kosong.',
-    UserNotFound: 'Username tidak ditemukan.',
-    WrongPassword: 'Password salah. Silakan coba lagi.',
+    InvalidCredentials: 'Username atau password salah. Silakan periksa kembali.',
+    UserNotFound: 'Username atau password salah. Silakan periksa kembali.',
+    WrongPassword: 'Username atau password salah. Silakan periksa kembali.',
     ServerError: 'Terjadi kesalahan pada server. Coba lagi.',
-    TooManyRequests: 'Terlalu banyak percobaan login gagal. Akun dikunci sementara demi keamanan.',
+    TooManyRequests: 'Terlalu banyak percobaan login gagal. Silakan tunggu beberapa saat demi keamanan.',
   }
 
   return (

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Banknote, QrCode, CreditCard, X, ArrowRight, AlertCircle, Loader2 } from 'lucide-react'
 import { formatFullRupiah } from '@/lib/format'
 
@@ -26,15 +26,18 @@ export function PaymentModal({
   loading = false,
 }: PaymentModalProps) {
   const [paymentMethod, setPaymentMethod] = useState<'Tunai' | 'QRIS' | 'Transfer'>('Tunai')
-  const [cashReceived, setCashReceived] = useState<string>('')
+  const [cashReceived, setCashReceived] = useState<string>(String(totalAmount))
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
+  const [prevTotal, setPrevTotal] = useState(totalAmount)
 
-  // Set default nominal to exact total when modal opens
-  useEffect(() => {
+  if (prevIsOpen !== isOpen || prevTotal !== totalAmount) {
+    setPrevIsOpen(isOpen)
+    setPrevTotal(totalAmount)
     if (isOpen) {
       setCashReceived(String(totalAmount))
       setPaymentMethod('Tunai')
     }
-  }, [isOpen, totalAmount])
+  }
 
   if (!isOpen) return null
 

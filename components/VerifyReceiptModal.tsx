@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useTransition } from 'react'
-import { Search, CheckCircle2, AlertTriangle, X, Receipt, Store, Calendar, CreditCard, Banknote, QrCode, Loader2, ArrowRight } from 'lucide-react'
+import { Search, CheckCircle2, AlertTriangle, X, Receipt, Store, Calendar, CreditCard, Loader2, ArrowRight } from 'lucide-react'
 import { verifyReceipt } from '@/lib/actions/product'
 import { formatFullRupiah } from '@/lib/format'
 

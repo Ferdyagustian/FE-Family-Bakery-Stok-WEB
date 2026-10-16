@@ -85,7 +85,7 @@ export function ForecastChart({ data, isLoading, error }: ForecastChartProps) {
         </div>
         <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-white mb-1">Siap Melakukan Analisis</h3>
         <p className="text-xs text-gray-500 dark:text-gray-400 max-w-[320px]">
-          Pilih cabang dan varian produk di samping, lalu klik <strong>"Mulai Prediksi AI"</strong> untuk melihat proyeksi penjualan 7 hari ke depan.
+          Pilih cabang dan varian produk di samping, lalu klik <strong>&quot;Mulai Prediksi AI&quot;</strong> untuk melihat proyeksi penjualan 7 hari ke depan.
         </p>
       </div>
     )

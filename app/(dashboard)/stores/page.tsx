@@ -75,7 +75,7 @@ export default async function StoresPage() {
           <div className="col-span-full flex flex-col items-center justify-center p-10 bg-white dark:bg-gray-900 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500">
             <StoreIcon className="w-12 h-12 mb-3" />
             <p className="text-base font-semibold text-gray-600 dark:text-gray-300">Belum ada cabang toko</p>
-            <p className="text-sm text-center mt-1">Klik "Tambah Cabang" untuk memulai</p>
+            <p className="text-sm text-center mt-1">Klik &quot;Tambah Cabang&quot; untuk memulai</p>
           </div>
         )}
       </div>

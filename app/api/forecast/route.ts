@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       if (authHeader?.startsWith('Bearer ')) {
         const token = authHeader.substring(7)
         const payload = await decrypt(token)
-        if (payload?.role === 'ADMIN') {
+        if (payload?.user?.role === 'ADMIN' || payload?.role === 'ADMIN') {
           isAuthorized = true
         }
       }
@@ -109,7 +109,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const storeIds: string[] = Array.isArray(body.storeIds) ? body.storeIds : ['ALL']
     const productIds: string[] = Array.isArray(body.productIds) ? body.productIds : ['ALL']
-    const horizonDays: number = Number(body.horizon_days) || 7
+    const rawHorizon = Number(body.horizon_days) || 7
+    const horizonDays: number = Math.min(Math.max(1, rawHorizon), 30) // Anti-DoS: Maksimal 30 hari
+
+    if (productIds.length > 50) {
+      return NextResponse.json({ detail: 'Maksimal 50 produk dapat diprediksi dalam satu permintaan' }, { status: 400 })
+    }
 
     const isAllStores = storeIds.includes('ALL')
     const isAllProducts = productIds.includes('ALL')

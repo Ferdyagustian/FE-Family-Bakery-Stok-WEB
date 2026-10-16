@@ -10,9 +10,14 @@ export async function GET(request: Request) {
   const resend = new Resend(process.env.RESEND_API_KEY || 'dummy_key')
   
   // 1. Verifikasi authorization header (Cron Secret) dengan perbandingan konstan waktu (Timing-safe)
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret) {
+    console.error('[Security Error] CRON_SECRET is not configured.')
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+  }
+
   const authHeader = request.headers.get('authorization')
-  
-  const expectedToken = `Bearer ${process.env.CRON_SECRET}`
+  const expectedToken = `Bearer ${cronSecret}`
   const actualToken = authHeader || ''
   
   let isAuthorized = false
@@ -23,7 +28,7 @@ export async function GET(request: Request) {
     )
   }
 
-  if (process.env.NODE_ENV === 'production' && !isAuthorized) {
+  if (!isAuthorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

@@ -7,14 +7,6 @@ import { ClearLogsButton } from '@/components/ClearLogsButton'
 
 export const revalidate = 0 // Selalu fresh — ini halaman log real-time
 
-// ─── Filter helpers ─────────────────────────────────────────────
-const ENTITY_LABELS: Record<string, string> = {
-  Product: 'Produk',
-  Sale:    'Penjualan',
-  Store:   'Cabang',
-  User:    'Pengguna',
-}
-
 export default async function AuditPage({
   searchParams,
 }: {

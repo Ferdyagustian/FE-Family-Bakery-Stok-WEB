@@ -19,6 +19,13 @@ export async function createManager(formData: FormData) {
     return { error: 'Semua field wajib diisi' }
   }
 
+  if (password.length < 8) {
+    return { error: 'Password minimal harus 8 karakter' }
+  }
+  if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+    return { error: 'Password harus mengandung kombinasi huruf dan angka' }
+  }
+
   try {
     const existingUser = await prisma.user.findUnique({ where: { username } })
     if (existingUser) {
@@ -60,8 +67,18 @@ export async function deleteManager(id: string, storeId: string) {
   const session = await getSession()
   if (!session || session.user.role !== 'ADMIN') return { error: 'Unauthorized' }
 
+  if (session.user.id === id) {
+    return { error: 'Anda tidak dapat menghapus akun Anda sendiri' }
+  }
+
   try {
-    const targetUser = await prisma.user.findUnique({ where: { id }, select: { name: true, username: true } })
+    const targetUser = await prisma.user.findUnique({ where: { id }, select: { name: true, username: true, role: true } })
+    if (!targetUser) {
+      return { error: 'Pengguna tidak ditemukan' }
+    }
+    if (targetUser.role === 'ADMIN') {
+      return { error: 'Akun Administrator tidak dapat dihapus melalui fitur cabang toko' }
+    }
 
     await prisma.user.delete({
       where: { id }

@@ -36,9 +36,9 @@ export async function loginAction(formData: FormData) {
         username,
         action: 'FAILED_LOGIN',
         entityType: 'User',
-        detail: { reason: 'UserNotFound' }
+        detail: { reason: 'InvalidCredentials' }
       })
-      redirect('/login?error=UserNotFound')
+      redirect('/login?error=InvalidCredentials')
     }
 
     const passwordMatch = await bcrypt.compare(password, user.passwordHash)
@@ -50,9 +50,9 @@ export async function loginAction(formData: FormData) {
         action: 'FAILED_LOGIN',
         entityType: 'User',
         entityId: user.id,
-        detail: { reason: 'WrongPassword' }
+        detail: { reason: 'InvalidCredentials' }
       })
-      redirect('/login?error=WrongPassword')
+      redirect('/login?error=InvalidCredentials')
     }
 
     await createSession({
