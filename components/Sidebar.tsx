@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Store as StoreIcon, FileSpreadsheet, LogOut, X, ClipboardList, Package, BrainCircuit } from 'lucide-react'
+import { LayoutDashboard, Store as StoreIcon, FileSpreadsheet, LogOut, X, ClipboardList, Package, BrainCircuit, ChefHat } from 'lucide-react'
 import { logoutAction } from '@/lib/actions/auth'
 
 interface SidebarProps {
@@ -14,6 +14,7 @@ interface SidebarProps {
 const navLinks = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/stores', label: 'Manajemen Cabang', icon: StoreIcon },
+  { href: '/orders', label: 'Pesanan & Jadwal Dapur', icon: ChefHat },
   { href: '/reports', label: 'Laporan & Ekspor', icon: FileSpreadsheet },
 ]
 
@@ -30,6 +31,7 @@ export function Sidebar({ onClose, showCloseButton, user }: SidebarProps) {
   if (user?.role === 'MANAGER') {
     visibleLinks = [
       { href: `/stores/${user.storeId}`, label: 'Cabang Saya (Kasir)', icon: StoreIcon },
+      { href: '/orders', label: 'Pesanan & Jadwal Dapur', icon: ChefHat },
       { href: '/reports', label: 'Laporan Penjualan', icon: FileSpreadsheet }
     ]
   }

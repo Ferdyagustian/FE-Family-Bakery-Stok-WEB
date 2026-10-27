@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { bulkRestockProducts } from '@/lib/actions/product'
-import { Package, RotateCcw, CheckCircle2, AlertCircle, Search, ArrowUpRight } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { submitRestockRequest } from '@/lib/actions/product'
+import { Package, RotateCcw, CheckCircle2, AlertCircle, Search, ArrowUpRight, MessageSquare } from 'lucide-react'
 import Image from 'next/image'
 
 type Product = {
@@ -13,8 +13,18 @@ type Product = {
   price: number
 }
 
-export function RestockForm({ products, storeId }: { products: Product[], storeId: string }) {
+export function RestockForm({ 
+  products, 
+  storeId, 
+  isAdmin = false 
+}: { 
+  products: Product[]
+  storeId: string
+  isAdmin?: boolean 
+}) {
   const [quantities, setQuantities] = useState<Record<string, string>>({})
+  const [notes, setNotes] = useState('')
+  const [directOverride, setDirectOverride] = useState(false)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [search, setSearch] = useState('')
@@ -34,9 +44,33 @@ export function RestockForm({ products, storeId }: { products: Product[], storeI
   const totalUpdated = Object.values(quantities).filter(v => parseInt(v) > 0).length
   const totalUnitsAdded = Object.values(quantities).reduce((sum, v) => sum + (parseInt(v) || 0), 0)
 
-  const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase())
-  )
+  const [pageSize, setPageSize] = useState(48)
+
+  // Pastikan bahwa stok yang nilainya tidak 0 berada di tampilan paling atas
+  const filteredProducts = products
+    .filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      const hasStockA = Number(a.stockQuantity) > 0 ? 1 : 0
+      const hasStockB = Number(b.stockQuantity) > 0 ? 1 : 0
+      // Prioritas 1: Stok > 0 selalu di paling atas
+      if (hasStockA !== hasStockB) {
+        return hasStockB - hasStockA
+      }
+      // Prioritas 2: Stok lebih banyak di atas
+      if (b.stockQuantity !== a.stockQuantity) {
+        return b.stockQuantity - a.stockQuantity
+      }
+      // Prioritas 3: Nama alfabetis
+      return a.name.localeCompare(b.name, 'id', { sensitivity: 'base' })
+    })
+
+  // Limit rendering DOM: Prioritaskan produk yang kuantitasnya sudah diisi (> 0)
+  const displayedProducts = useMemo(() => {
+    const selected = filteredProducts.filter(p => (parseInt(quantities[p.id] || '0') || 0) > 0)
+    const unselected = filteredProducts.filter(p => (parseInt(quantities[p.id] || '0') || 0) === 0)
+    const remainingSlots = Math.max(0, pageSize - selected.length)
+    return [...selected, ...unselected.slice(0, remainingSlots)]
+  }, [filteredProducts, quantities, pageSize])
 
   async function handleSubmit() {
     const restocks = Object.entries(quantities)
@@ -50,22 +84,31 @@ export function RestockForm({ products, storeId }: { products: Product[], storeI
 
     setLoading(true)
     setResult(null)
-    const res = await bulkRestockProducts(restocks, storeId)
+    const res = await submitRestockRequest(restocks, storeId, notes, directOverride)
     setLoading(false)
 
-    if (res?.error) {
+    if ('error' in res && res.error) {
       setResult({ type: 'error', message: res.error })
-    } else {
+    } else if ('pendingApproval' in res && res.pendingApproval) {
       setResult({
         type: 'success',
-        message: `Berhasil merestok ${res.count} produk (total +${totalUnitsAdded} unit ditambahkan)!`
+        message: `Permintaan restok berhasil diajukan (Batch: ${res.batchNo})! Menunggu persetujuan Super Admin.`
       })
       setQuantities({})
+      setNotes('')
+    } else if ('count' in res) {
+      setResult({
+        type: 'success',
+        message: `Restok langsung berhasil diterapkan ke ${res.count} produk (total +${totalUnitsAdded} unit)!`
+      })
+      setQuantities({})
+      setNotes('')
     }
   }
 
   const handleReset = () => {
     setQuantities({})
+    setNotes('')
     setResult(null)
   }
 
@@ -95,13 +138,27 @@ export function RestockForm({ products, storeId }: { products: Product[], storeI
             type="text"
             placeholder="Cari varian roti..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => {
+              setSearch(e.target.value)
+              setPageSize(48)
+            }}
             className="w-full pl-9 pr-3 h-10 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xs"
           />
         </div>
 
         {/* Stats + Actions */}
         <div className="flex items-center gap-2.5 flex-wrap w-full sm:w-auto justify-end">
+          {isAdmin && (
+            <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300 cursor-pointer select-none bg-gray-50 dark:bg-gray-800 px-2.5 py-2 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+              <input
+                type="checkbox"
+                checked={directOverride}
+                onChange={e => setDirectOverride(e.target.checked)}
+                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <span className="font-medium">Bypass (Restok Langsung)</span>
+            </label>
+          )}
           {totalUpdated > 0 && (
             <div className="flex items-center gap-3 text-xs text-indigo-900 dark:text-indigo-200 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 px-3 py-2 rounded-xl">
               <span><strong className="text-indigo-600 dark:text-indigo-400">{totalUpdated}</strong> produk</span>
@@ -124,12 +181,12 @@ export function RestockForm({ products, storeId }: { products: Product[], storeI
             {loading ? (
               <>
                 <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                <span>Menyimpan...</span>
+                <span>Memproses...</span>
               </>
             ) : (
               <>
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Simpan Semua ({totalUpdated})</span>
+                <span>{directOverride ? `Simpan Langsung (${totalUpdated})` : `Ajukan Restok (${totalUpdated})`}</span>
               </>
             )}
           </button>
@@ -144,7 +201,7 @@ export function RestockForm({ products, storeId }: { products: Product[], storeI
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredProducts.map(product => {
+          {displayedProducts.map(product => {
             const qty = parseInt(quantities[product.id] || '0') || 0
             const hasValue = qty > 0
             const isLowStock = product.stockQuantity > 0 && product.stockQuantity < 10
@@ -256,21 +313,59 @@ export function RestockForm({ products, storeId }: { products: Product[], storeI
         </div>
       )}
 
-      {/* Floating Bottom Glass Dock (Taste-skill compliant) */}
+      {/* Progressive Pagination Indicator for Large Catalog */}
+      {filteredProducts.length > displayedProducts.length && (
+        <div className="flex flex-col items-center justify-center pt-2 pb-6 space-y-1.5">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Menampilkan {displayedProducts.length} dari {filteredProducts.length} varian roti
+          </p>
+          <button
+            type="button"
+            onClick={() => setPageSize(prev => prev + 48)}
+            className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-xs transition-all active:scale-95"
+          >
+            Muat Lebih Banyak (+48 varian)
+          </button>
+        </div>
+      )}
+
+      {/* Floating Bottom Glass Dock */}
       {totalUpdated > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="bg-gray-900/90 dark:bg-gray-950/90 backdrop-blur-md border border-gray-700/80 shadow-2xl px-5 py-3 rounded-2xl flex items-center gap-4 text-white">
-            <div className="text-xs">
-              <span className="text-gray-400">Siap disimpan: </span>
-              <span className="font-bold text-white">{totalUpdated} produk</span>
-              <span className="text-emerald-400 font-bold ml-1.5">(+{totalUnitsAdded} unit)</span>
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 animate-in fade-in slide-in-from-bottom-4 duration-300 w-full max-w-2xl px-4">
+          <div className="bg-gray-900/95 dark:bg-gray-950/95 backdrop-blur-md border border-gray-700/80 shadow-2xl p-3 sm:px-5 sm:py-3 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-white">
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+              <div className="text-xs">
+                <span className="text-gray-400">Total: </span>
+                <span className="font-bold text-white">{totalUpdated} produk</span>
+                <span className="text-emerald-400 font-bold ml-1.5">(+{totalUnitsAdded} unit)</span>
+              </div>
+              <input
+                type="text"
+                placeholder="Catatan pengajuan (opsional)..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="hidden sm:block text-xs bg-gray-800/80 border border-gray-700 rounded-lg px-2.5 py-1.5 text-white placeholder-gray-400 outline-none focus:border-indigo-500 w-48"
+              />
+              {isAdmin && (
+                <label className="flex items-center gap-1.5 text-xs text-gray-300 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={directOverride}
+                    onChange={e => setDirectOverride(e.target.checked)}
+                    className="rounded text-indigo-500 focus:ring-indigo-400"
+                  />
+                  <span>Bypass</span>
+                </label>
+              )}
             </div>
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-4 py-2 rounded-xl transition-all shadow-md shadow-indigo-600/30 active:scale-95"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-600/30 active:scale-95 disabled:opacity-50"
             >
-              {loading ? 'Menyimpan...' : 'Simpan Restok'}
+              {loading 
+                ? 'Memproses...' 
+                : (directOverride ? 'Simpan Restok Langsung' : 'Ajukan Permintaan Restok')}
               <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
           </div>

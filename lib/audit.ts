@@ -19,6 +19,11 @@ export type AuditAction =
   | 'UPDATE_BULK_PRICES'
   | 'ADJUST_ALL_PRICES'
   | 'FAILED_LOGIN'
+  | 'REQUEST_RESTOCK'
+  | 'APPROVE_RESTOCK'
+  | 'REJECT_RESTOCK'
+  | 'CREATE_PREORDER'
+  | 'UPDATE_PREORDER_STATUS'
 
 interface AuditParams {
   userId?: string
@@ -72,15 +77,21 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   UPDATE_BULK_PRICES:    'Edit Harga Massal',
   ADJUST_ALL_PRICES:     'Penyesuaian Harga Global',
   FAILED_LOGIN:          'Gagal Login',
+  REQUEST_RESTOCK:       'Pengajuan Restok',
+  APPROVE_RESTOCK:       'Persetujuan Restok',
+  REJECT_RESTOCK:        'Penolakan Restok',
+  CREATE_PREORDER:       'Buat Pesanan Baru',
+  UPDATE_PREORDER_STATUS:'Ubah Status Pesanan',
 }
 
 // ─── Warna badge per aksi ──────────────────────────────────────
 export function getAuditActionColor(action: string): string {
-  if (action.startsWith('DELETE') || action === 'CLEAR_LOGS') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-  if (action.startsWith('CREATE'))  return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+  if (action.startsWith('DELETE') || action === 'CLEAR_LOGS' || action === 'REJECT_RESTOCK') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+  if (action.startsWith('CREATE') || action === 'APPROVE_RESTOCK')  return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
   if (action.startsWith('UPDATE') || action === 'RESTOCK_PRODUCT')
                                     return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-  if (action === 'RECORD_SALE')     return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+  if (action === 'REQUEST_RESTOCK') return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+  if (action === 'RECORD_SALE' || action === 'CREATE_PREORDER')     return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
   if (action === 'LOGIN')           return 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
   if (action === 'LOGOUT')          return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
   if (action === 'FAILED_LOGIN')    return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'

@@ -59,6 +59,8 @@ export async function loginAction(formData: FormData) {
       id: user.id,
       role: user.role,
       storeId: user.storeId,
+      username: user.username,
+      name: user.name,
     })
 
     // Catat aktivitas login

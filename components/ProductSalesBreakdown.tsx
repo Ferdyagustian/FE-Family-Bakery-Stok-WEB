@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer
 } from 'recharts'
@@ -50,9 +50,14 @@ export function ProductSalesBreakdown({
   data: ProductSale[]
   stores: { id: string; name: string }[]
 }) {
+  const [mounted, setMounted] = useState(false)
   const [timeFilter, setTimeFilter] = useState<'daily' | 'monthly' | 'yearly'>('monthly')
   const [storeFilter, setStoreFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const { productData, pieData, totalRevenue, totalProfit } = useMemo(() => {
     const currentKey = getCurrentWIBKey(timeFilter)
@@ -192,42 +197,46 @@ export function ProductSalesBreakdown({
               </span>
             </div>
 
-            <div className="relative w-full h-[220px] flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={65}
-                    outerRadius={95}
-                    paddingAngle={3}
-                    dataKey="revenue"
-                    nameKey="name"
-                    stroke="none"
-                  >
-                    {pieData.map((_, index) => (
-                      <Cell key={index} fill={PALETTE[index % PALETTE.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value: any, name: any) => [
-                      `Rp ${Number(value).toLocaleString('id-ID')}`,
-                      name,
-                    ]}
-                    contentStyle={{
-                      backgroundColor: 'rgba(17, 24, 39, 0.95)',
-                      borderRadius: '12px',
-                      border: 'none',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-                      color: '#ffffff',
-                      fontSize: '12px',
-                      padding: '8px 12px'
-                    }}
-                    itemStyle={{ color: '#fff' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+            <div className="relative w-full h-[220px] min-w-0 flex items-center justify-center">
+              {!mounted ? (
+                <div className="w-28 h-28 rounded-full border-4 border-indigo-100 dark:border-indigo-950/40 animate-pulse" />
+              ) : (
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={65}
+                      outerRadius={95}
+                      paddingAngle={3}
+                      dataKey="revenue"
+                      nameKey="name"
+                      stroke="none"
+                    >
+                      {pieData.map((_, index) => (
+                        <Cell key={index} fill={PALETTE[index % PALETTE.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: any, name: any) => [
+                        `Rp ${Number(value).toLocaleString('id-ID')}`,
+                        name,
+                      ]}
+                      contentStyle={{
+                        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                        borderRadius: '12px',
+                        border: 'none',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+                        color: '#ffffff',
+                        fontSize: '12px',
+                        padding: '8px 12px'
+                      }}
+                      itemStyle={{ color: '#fff' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
 
               {/* Centered Donut Stat */}
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">

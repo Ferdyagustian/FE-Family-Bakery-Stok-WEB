@@ -153,14 +153,24 @@ export function ProductSearchList({
       const stockA = Number(a.stockQuantity || 0) > 0 ? 1 : 0
       const stockB = Number(b.stockQuantity || 0) > 0 ? 1 : 0
 
-      // Prioritas 1: Produk yang stoknya ada selalu di atas
+      // Prioritas 1: Produk yang stoknya ada (> 0) selalu di paling atas
       if (stockA !== stockB) {
         return stockB - stockA
       }
 
-      // Prioritas 2: Urutkan secara alfabetis A sampai Z
+      // Prioritas 2: Stok lebih banyak di atas
+      const qtyA = Number(a.stockQuantity || 0)
+      const qtyB = Number(b.stockQuantity || 0)
+      if (qtyB !== qtyA) {
+        return qtyB - qtyA
+      }
+
+      // Prioritas 3: Urutkan secara alfabetis A sampai Z
       return a.name.localeCompare(b.name, 'id', { sensitivity: 'base' })
     })
+
+  const [pageSize, setPageSize] = useState(36)
+  const displayedProducts = filteredProducts.slice(0, pageSize)
 
   return (
     <div className="space-y-4">
@@ -174,7 +184,10 @@ export function ProductSearchList({
             type="text"
             placeholder="Cari nama produk..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value)
+              setPageSize(36)
+            }}
             className="block w-full pl-9 pr-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm transition-colors shadow-xs"
           />
         </div>
@@ -223,7 +236,7 @@ export function ProductSearchList({
           ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' 
           : 'grid-cols-1 lg:grid-cols-2'
       }`}>
-        {filteredProducts.map((product) => {
+        {displayedProducts.map((product) => {
           const cartItem = cart.find(item => item.product.id === product.id)
           return (
             <ProductCard 
@@ -247,6 +260,21 @@ export function ProductSearchList({
           </div>
         )}
       </div>
+
+      {/* Load More Button for Large Catalogs */}
+      {filteredProducts.length > pageSize && (
+        <div className="flex flex-col items-center justify-center pt-4 pb-2 space-y-1.5">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Menampilkan {pageSize} dari {filteredProducts.length} produk
+          </p>
+          <button
+            onClick={() => setPageSize(prev => prev + 36)}
+            className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-xs transition-all active:scale-95"
+          >
+            Muat Lebih Banyak (+36 produk)
+          </button>
+        </div>
+      )}
 
       {/* Floating Bottom Cart Bar */}
       {cartTotalQty > 0 && !isCartOpen && (

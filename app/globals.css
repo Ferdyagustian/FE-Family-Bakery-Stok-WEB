@@ -23,9 +23,16 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    touch-action: manipulation;
+    -webkit-overflow-scrolling: touch;
     @apply antialiased min-h-screen font-sans;
   }
 }

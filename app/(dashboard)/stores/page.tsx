@@ -2,18 +2,27 @@ import prisma from '@/lib/db'
 import Link from 'next/link'
 import { Store as StoreIcon, MapPin, ChevronRight, Package, TrendingUp } from 'lucide-react'
 import { AddStoreForm } from '@/components/AddStoreForm'
+import { getPendingRestockBatches } from '@/lib/actions/product'
+import { PendingRestockList } from '@/components/PendingRestockList'
+import { getSession } from '@/lib/session'
 
-export const revalidate = 30
+export const revalidate = 0
 
 export default async function StoresPage() {
-  const stores = await prisma.store.findMany({
-    orderBy: { createdAt: 'desc' },
-    include: {
-      _count: {
-        select: { storeProducts: true, sales: true }
+  const session = await getSession()
+  const isAdmin = session?.user?.role === 'ADMIN'
+
+  const [stores, pendingBatches] = await Promise.all([
+    prisma.store.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        _count: {
+          select: { storeProducts: true, sales: true }
+        }
       }
-    }
-  })
+    }),
+    isAdmin ? getPendingRestockBatches() : Promise.resolve([])
+  ])
 
   return (
     <div className="space-y-5">
@@ -29,6 +38,9 @@ export default async function StoresPage() {
           </div>
         </div>
       </div>
+
+      {/* Pending Restock Requests from Stores */}
+      {isAdmin && <PendingRestockList batches={pendingBatches} />}
 
       {/* Stores Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">

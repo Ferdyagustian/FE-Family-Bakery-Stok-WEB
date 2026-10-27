@@ -7,6 +7,8 @@ import { notFound } from 'next/navigation'
 import { DeleteStoreButton } from '@/components/DeleteStoreButton'
 import { getSession } from '@/lib/session'
 import { ManageStoreUsers } from '@/components/ManageStoreUsers'
+import { getPendingRestockBatches } from '@/lib/actions/product'
+import { PendingRestockList } from '@/components/PendingRestockList'
 
 export const revalidate = 0
 
@@ -32,7 +34,10 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
 
   if (!store) notFound()
 
-  // Mapped back to product format & urutkan: Stok > 0 di atas, lalu urut alfabetis A-Z
+  // Fetch pending restock batches for this store
+  const pendingBatches = await getPendingRestockBatches(storeId)
+
+  // Mapped back to product format & urutkan: Stok > 0 di paling atas, lalu stok terbanyak, lalu alfabetis A-Z
   const storeProductsList = store.storeProducts
     .map(sp => ({
       ...sp.product,
@@ -42,7 +47,10 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
       const stockA = Number(a.stockQuantity) > 0 ? 1 : 0
       const stockB = Number(b.stockQuantity) > 0 ? 1 : 0
       if (stockA !== stockB) {
-        return stockB - stockA // Stok ada di atas
+        return stockB - stockA // Stok > 0 selalu di atas
+      }
+      if (b.stockQuantity !== a.stockQuantity) {
+        return b.stockQuantity - a.stockQuantity // Stok lebih banyak di atas
       }
       return a.name.localeCompare(b.name, 'id', { sensitivity: 'base' })
     })
@@ -68,6 +76,9 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
 
       {/* Admin Panel: Manage Cashiers */}
       {isAdmin && <ManageStoreUsers storeId={store.id} users={store.users} />}
+
+      {/* Pending Restock Requests for this Store */}
+      <PendingRestockList batches={pendingBatches} isAdmin={isAdmin} />
 
       {/* Sub-header with action */}
       <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 sm:p-6">

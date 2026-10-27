@@ -34,6 +34,8 @@ model Store {
   location      String?
   storeProducts StoreProduct[]
   sales         Sale[]
+  restockRequests RestockRequest[]
+  customOrders    CustomOrder[]
   users     User[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -48,8 +50,12 @@ model Product {
   discount      Int            @default(0)
   sales         Sale[]
   storeProducts StoreProduct[]
+  restockRequests  RestockRequest[]
+  customOrderItems CustomOrderItem[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+
+  @@index([name])
 }
 
 model StoreProduct {
@@ -107,4 +113,78 @@ model AuditLog {
   @@index([storeId])
   @@index([createdAt])
   @@index([entityType, entityId])
+}
+
+enum RestockStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PROCESS
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+model RestockRequest {
+  id          String        @id @default(cuid())
+  batchNo     String
+  storeId     String
+  productId   String
+  quantity    Int
+  status      RestockStatus @default(PENDING)
+  notes       String?
+  requestedBy String
+  approvedBy  String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  store       Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  product     Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, status])
+  @@index([batchNo])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model CustomOrder {
+  id           String            @id @default(cuid())
+  orderNo      String            @unique
+  customerName String
+  phone        String
+  pickupDate   DateTime
+  storeId      String
+  status       OrderStatus       @default(PENDING)
+  totalAmount  Float
+  depositPaid  Float             @default(0)
+  notes        String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  items        CustomOrderItem[]
+  store        Store             @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([pickupDate, status])
+  @@index([pickupDate])
+  @@index([status])
+  @@index([storeId])
+  @@index([createdAt])
+}
+
+model CustomOrderItem {
+  id        String      @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Float
+
+  order     CustomOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([productId])
 }

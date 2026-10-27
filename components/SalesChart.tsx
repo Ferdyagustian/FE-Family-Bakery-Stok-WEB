@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer
@@ -66,9 +66,14 @@ export function SalesChart({
   stores: { id: string; name: string }[]
   productSales?: ProductSale[]
 }) {
+  const [mounted, setMounted] = useState(false)
   const [timeFilter, setTimeFilter] = useState<'daily' | 'monthly' | 'yearly'>('daily')
   const [storeFilter, setStoreFilter] = useState<string>('all')
   const [chartMode, setChartMode] = useState<'total' | 'stacked'>('total')
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // 1. Identifikasi Top 5 Produk Terlaris secara Global untuk Mode Stacked Bersih
   const { topProducts, topProductIds } = useMemo(() => {
@@ -226,9 +231,13 @@ export function SalesChart({
       </div>
 
       {/* Chart Canvas */}
-      <div className="h-[340px] w-full">
-        {activeData.length > 0 ? (
-          <ResponsiveContainer width="100%" height="100%">
+      <div className="h-[340px] w-full min-w-0">
+        {!mounted ? (
+          <div className="w-full h-full rounded-2xl bg-gray-50/50 dark:bg-gray-800/20 animate-pulse flex items-center justify-center">
+            <span className="text-xs text-gray-400">Memuat grafik...</span>
+          </div>
+        ) : activeData.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={340}>
             <BarChart data={activeData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} barCategoryGap="25%">
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" opacity={0.6} />
               <XAxis

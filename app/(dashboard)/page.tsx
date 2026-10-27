@@ -6,6 +6,8 @@ import { Store, Package, TrendingUp, CircleDollarSign, Boxes } from 'lucide-reac
 import { getSession } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { formatCompactRupiah, formatFullRupiah } from '@/lib/format'
+import { getPendingRestockBatches } from '@/lib/actions/product'
+import { PendingRestockList } from '@/components/PendingRestockList'
 
 export const revalidate = 60
 
@@ -13,7 +15,7 @@ async function DashboardData() {
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-  const [stores, productCount, stockAgg, salesAgg, sales] = await Promise.all([
+  const [stores, productCount, stockAgg, salesAgg, ordersAgg, sales, completedOrders] = await Promise.all([
     prisma.store.findMany({ select: { id: true, name: true } }),
     prisma.product.findMany({
       distinct: ['name'],
@@ -24,6 +26,11 @@ async function DashboardData() {
     }),
     prisma.sale.aggregate({
       _sum: { totalAmount: true, profitAmount: true },
+      _count: { id: true },
+    }),
+    prisma.customOrder.aggregate({
+      where: { status: 'COMPLETED' },
+      _sum: { totalAmount: true },
       _count: { id: true },
     }),
     prisma.sale.findMany({
@@ -40,21 +47,61 @@ async function DashboardData() {
       },
       orderBy: { saleDate: 'asc' },
     }),
+    prisma.customOrder.findMany({
+      where: {
+        status: 'COMPLETED',
+        pickupDate: { gte: thirtyDaysAgo },
+      },
+      select: {
+        id: true,
+        storeId: true,
+        pickupDate: true,
+        totalAmount: true,
+        store: { select: { name: true } },
+        items: {
+          select: {
+            productId: true,
+            quantity: true,
+            price: true,
+            product: { select: { name: true } }
+          }
+        }
+      },
+      orderBy: { pickupDate: 'asc' },
+    })
   ])
 
-  const totalRevenue = salesAgg._sum.totalAmount ?? 0
-  const totalProfit = salesAgg._sum.profitAmount ?? 0
+  const completedOrderRevenue = ordersAgg._sum.totalAmount ?? 0
+  const completedOrdersCount = ordersAgg._count.id ?? 0
+  const completedOrderProfit = Math.round(completedOrderRevenue * 0.28) // Estimasi margin laba kotor 28%
+
+  const totalRevenue = (salesAgg._sum.totalAmount ?? 0) + completedOrderRevenue
+  const totalProfit = (salesAgg._sum.profitAmount ?? 0) + completedOrderProfit
   const totalSales = salesAgg._count.id
+  const totalTransactionsCount = totalSales + completedOrdersCount
   const totalStock = stockAgg._sum.stockQuantity ?? 0
 
-  const formattedSales = sales.map((s: any) => ({
+  // 1. Gabungkan data deret waktu untuk grafik tren penjualan
+  const posFormattedSales = sales.map((s: any) => ({
     date: s.saleDate.toISOString(),
     revenue: s.totalAmount,
     profit: s.profitAmount,
     store: s.storeId,
   }))
 
-  const productSales = sales.map((s: any) => ({
+  const ordersFormattedSales = completedOrders.map((o: any) => ({
+    date: o.pickupDate.toISOString(),
+    revenue: o.totalAmount,
+    profit: Math.round(o.totalAmount * 0.28),
+    store: o.storeId,
+  }))
+
+  const formattedSales = [...posFormattedSales, ...ordersFormattedSales].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  )
+
+  // 2. Gabungkan data rincian produk (POS Kasir + Pre-Order Selesai)
+  const posProductSales = sales.map((s: any) => ({
     productId: s.productId,
     productName: s.product.name,
     storeId: s.storeId,
@@ -64,6 +111,25 @@ async function DashboardData() {
     profitAmount: s.profitAmount,
     date: s.saleDate.toISOString(),
   }))
+
+  const orderProductSales: typeof posProductSales = []
+  completedOrders.forEach((o: any) => {
+    o.items?.forEach((item: any) => {
+      const itemSubtotal = item.price * item.quantity
+      orderProductSales.push({
+        productId: item.productId,
+        productName: item.product.name,
+        storeId: o.storeId,
+        storeName: o.store?.name || 'Cabang',
+        quantitySold: item.quantity,
+        totalAmount: itemSubtotal,
+        profitAmount: Math.round(itemSubtotal * 0.28),
+        date: o.pickupDate.toISOString(),
+      })
+    })
+  })
+
+  const productSales = [...posProductSales, ...orderProductSales]
 
   return (
     <>
@@ -85,7 +151,7 @@ async function DashboardData() {
               {formatCompactRupiah(totalRevenue, false)}
             </p>
             <p className="text-[11px] text-indigo-200 mt-0.5">
-              Margin: {totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : 0}%
+              Margin: {totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : 0}% • Kasir &amp; Pre-Order
             </p>
           </div>
         </div>
@@ -93,10 +159,10 @@ async function DashboardData() {
         {/* 2. Total Transaksi */}
         <StatCard
           title="Total Transaksi"
-          value={totalSales.toLocaleString('id-ID')}
-          subtitle="30 hari terakhir"
+          value={totalTransactionsCount.toLocaleString('id-ID')}
+          subtitle={`${totalSales.toLocaleString('id-ID')} kasir + ${completedOrdersCount} pesanan`}
           icon={<TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
-          badge="Aktif"
+          badge="Gabungan"
         />
 
         {/* 3. Cabang Aktif */}
@@ -166,6 +232,8 @@ export default async function DashboardPage() {
     }
   }
 
+  const pendingBatches = await getPendingRestockBatches()
+
   return (
     <div className="space-y-6">
       {/* Modern Dashboard Header */}
@@ -185,6 +253,11 @@ export default async function DashboardPage() {
           </span>
         </div>
       </div>
+
+      {/* Pending Restock Requests from Branch Stores */}
+      {pendingBatches.length > 0 && (
+        <PendingRestockList batches={pendingBatches} isAdmin={true} />
+      )}
 
       <Suspense fallback={<DashboardSkeleton />}>
         <DashboardData />

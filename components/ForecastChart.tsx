@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import {
   Line,
@@ -50,7 +51,12 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 }
 
 export function ForecastChart({ data, isLoading, error }: ForecastChartProps) {
+  const [mounted, setMounted] = useState(false)
   const { theme } = useTheme()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   const isDark = theme === 'dark'
 
   const gridColor = isDark ? '#1f2937' : '#f3f4f6'
@@ -114,51 +120,57 @@ export function ForecastChart({ data, isLoading, error }: ForecastChartProps) {
   }
 
   return (
-    <div className="w-full h-80">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart
-          data={transformedData}
-          margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
-          <XAxis 
-            dataKey="date" 
-            tickFormatter={formatXAxis}
-            axisLine={false}
-            tickLine={false}
-            tick={{ fill: textColor, fontSize: 11, fontWeight: 500 }}
-            dy={8}
-          />
-          <YAxis 
-            axisLine={false}
-            tickLine={false}
-            tick={{ fill: textColor, fontSize: 11, fontWeight: 500 }}
-            dx={-6}
-          />
-          <Tooltip content={<CustomTooltip />} cursor={{ stroke: gridColor, strokeWidth: 1.5, strokeDasharray: '4 4' }} />
-          {data.length > 1 && (
-            <Legend 
-              wrapperStyle={{ paddingTop: '16px', fontSize: '11px' }} 
-              iconType="circle"
-              formatter={(value) => <span className="text-gray-700 dark:text-gray-300 font-medium">{value}</span>}
+    <div className="w-full h-80 min-w-0">
+      {!mounted ? (
+        <div className="w-full h-full rounded-2xl bg-gray-50/50 dark:bg-gray-800/20 animate-pulse flex items-center justify-center">
+          <span className="text-xs text-gray-400">Memuat grafik prediksi...</span>
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={320}>
+          <LineChart
+            data={transformedData}
+            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
+            <XAxis 
+              dataKey="date" 
+              tickFormatter={formatXAxis}
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: textColor, fontSize: 11, fontWeight: 500 }}
+              dy={8}
             />
-          )}
-          
-          {data.map((series, index) => (
-            <Line
-              key={series.id}
-              type="monotone"
-              dataKey={series.name}
-              stroke={colors[index % colors.length]}
-              strokeWidth={2.5}
-              dot={{ r: 3.5, fill: colors[index % colors.length], strokeWidth: 0 }}
-              activeDot={{ r: 6, strokeWidth: 0 }}
-              animationDuration={1000}
-              animationEasing="ease-out"
+            <YAxis 
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: textColor, fontSize: 11, fontWeight: 500 }}
+              dx={-6}
             />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
+            <Tooltip content={<CustomTooltip />} cursor={{ stroke: gridColor, strokeWidth: 1.5, strokeDasharray: '4 4' }} />
+            {data.length > 1 && (
+              <Legend 
+                wrapperStyle={{ paddingTop: '16px', fontSize: '11px' }} 
+                iconType="circle"
+                formatter={(value) => <span className="text-gray-700 dark:text-gray-300 font-medium">{value}</span>}
+              />
+            )}
+            
+            {data.map((series, index) => (
+              <Line
+                key={series.id}
+                type="monotone"
+                dataKey={series.name}
+                stroke={colors[index % colors.length]}
+                strokeWidth={2.5}
+                dot={{ r: 3.5, fill: colors[index % colors.length], strokeWidth: 0 }}
+                activeDot={{ r: 6, strokeWidth: 0 }}
+                animationDuration={1000}
+                animationEasing="ease-out"
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      )}
     </div>
   )
 }
