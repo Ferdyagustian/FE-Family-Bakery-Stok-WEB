@@ -3,8 +3,8 @@ import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
-const inter = Inter({ subsets: ["latin"], variable: '--font-sans' });
-const outfit = Outfit({ subsets: ["latin"], variable: '--font-heading' });
+const inter = Inter({ subsets: ["latin"], variable: '--font-sans', display: 'swap' });
+const outfit = Outfit({ subsets: ["latin"], variable: '--font-heading', display: 'swap' });
 
 export const metadata: Metadata = {
   title: "Family Bakery Admin",

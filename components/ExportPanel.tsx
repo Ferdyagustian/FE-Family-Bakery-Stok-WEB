@@ -17,7 +17,6 @@ import {
   ChevronRight,
   PackageCheck
 } from 'lucide-react'
-import * as XLSX from 'xlsx'
 import { formatCompactRupiah, formatFullRupiah } from '@/lib/format'
 import { CustomDropdown } from '@/components/CustomDropdown'
 
@@ -178,11 +177,13 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
   }, [filteredData, currentPage, pageSize])
 
   // ── Download Excel (.xlsx) ───────────────────────────
-  function handleDownloadExcel() {
+  async function handleDownloadExcel() {
     if (!data || data.length === 0) {
       setError('Tidak ada data untuk di-download')
       return
     }
+
+    const XLSX = await import('xlsx')
 
     let sheetData: Record<string, any>[]
     let fileName: string

@@ -1,7 +1,18 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { ForecastChart, ForecastSeries } from '@/components/ForecastChart'
+import dynamic from 'next/dynamic'
+import type { ForecastSeries } from '@/components/ForecastChart'
+
+const ForecastChart = dynamic(
+  () => import('@/components/ForecastChart').then((m) => m.ForecastChart),
+  {
+    loading: () => (
+      <div className="h-80 w-full animate-pulse bg-gray-50 dark:bg-gray-800/40 rounded-2xl border border-gray-100 dark:border-gray-800" />
+    ),
+    ssr: false,
+  }
+)
 import { Store, Package, Sparkles, Check, Search, RotateCcw, TrendingUp, Globe, Layers } from 'lucide-react'
 
 interface StoreType {

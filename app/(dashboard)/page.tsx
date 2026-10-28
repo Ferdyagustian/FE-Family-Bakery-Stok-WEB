@@ -1,7 +1,26 @@
 import React, { Suspense } from 'react'
+import dynamic from 'next/dynamic'
 import prisma from '@/lib/db'
-import { SalesChart } from '@/components/SalesChart'
-import { ProductSalesBreakdown } from '@/components/ProductSalesBreakdown'
+
+const SalesChart = dynamic(
+  () => import('@/components/SalesChart').then((m) => m.SalesChart),
+  {
+    loading: () => (
+      <div className="h-72 w-full animate-pulse bg-gray-50 dark:bg-gray-800/40 rounded-2xl border border-gray-100 dark:border-gray-800" />
+    ),
+    ssr: false,
+  }
+)
+
+const ProductSalesBreakdown = dynamic(
+  () => import('@/components/ProductSalesBreakdown').then((m) => m.ProductSalesBreakdown),
+  {
+    loading: () => (
+      <div className="h-96 w-full animate-pulse bg-gray-50 dark:bg-gray-800/40 rounded-2xl border border-gray-100 dark:border-gray-800" />
+    ),
+    ssr: false,
+  }
+)
 import { Store, Package, TrendingUp, CircleDollarSign, Boxes, PackageMinus } from 'lucide-react'
 import { getSession } from '@/lib/session'
 import { redirect } from 'next/navigation'
