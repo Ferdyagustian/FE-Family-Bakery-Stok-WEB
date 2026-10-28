@@ -48,3 +48,7 @@ new_skills/
 # mcp configs with tokens
 mcp_config.json
 .agents/mcp_config.json
+
+# database backups
+/scripts/backups/
+
