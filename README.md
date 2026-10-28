@@ -1,212 +1,208 @@
-# 🥖 Family Bakery — Sistem Manajemen Stok, Penjualan & Jadwal Dapur
+# Family Bakery Web
 
-Aplikasi web modern berbasis cloud untuk manajemen rantai pasok gerai bakery terdistribusi: pemantauan stok multi-cabang, kasir POS, jadwal produksi dapur pusat (*kitchen baking schedule*), pesanan khusus (*pre-order*), serta analisis & prediksi permintaan (*AI demand forecasting*).
-
----
-
-## 🎥 Video Demo
-- **Demo Quest Sistem Family Bakery**: [https://youtu.be/PeyZ-ZcziEo](https://youtu.be/PeyZ-ZcziEo)
+Enterprise web application for multi-branch bakery supply chain, inventory tracking, central kitchen production scheduling, and custom pre-order fulfillment.
 
 ---
 
-## 📐 Arsitektur Sistem
+## Overview
+
+Family Bakery Web provides end-to-end management for distributed bakery operations. The system bridges retail store branches with the central baking kitchen by synchronizing custom customer pre-orders, branch restock requests, point-of-sale inventory transactions, and automated baking schedules.
+
+---
+
+## System Architecture
 
 ```mermaid
 graph TD
-    subgraph Client["🖥️ Klien & Antarmuka Pengguna"]
-        AdminUI["Dashboard Super Admin<br/>(Desktop & Tablet)"]
-        StoreUI["Kasir POS & Staff Cabang<br/>(Mobile & Tablet Responsive)"]
-        KitchenUI["Lembar Kerja Dapur Pusat<br/>(Baking Schedule & Print Sheet)"]
+    subgraph Client Layer
+        AdminUI[Super Admin Dashboard]
+        StoreUI[Branch Store POS & Inventory]
+        KitchenUI[Central Kitchen Baking Sheet]
     end
 
-    subgraph AppServer["⚡ Next.js 16 (App Router & Turbopack)"]
-        AuthMiddleware["JWT Session & Role Middleware<br/>(Admin / Store User)"]
-        ServerActions["Next.js Server Actions<br/>(Audit, Restock, Order, Product)"]
-        CustomUI["Tailwind CSS v4 & Custom Dropdowns<br/>(No Template OS Styling)"]
+    subgraph Application Server
+        NextJS[Next.js 16 App Router]
+        AuthMiddleware[JWT Session & RBAC Guard]
+        ServerActions[Server Actions API Layer]
+        CustomUI[Tailwind CSS Design System]
     end
 
-    subgraph Integrations["🔌 Layanan Eksternal & Bot"]
-        TelegramBot["🤖 Bot Telegram Notifikasi<br/>(Pengajuan Restok Instan)"]
-        FastAPI_AI["🧠 ML Forecasting Engine<br/>(FastAPI + Google TimesFM)"]
+    subgraph External Services
+        TelegramService[Telegram Bot Webhook]
+        MLService[FastAPI Demand Forecasting Service]
     end
 
-    subgraph DataLayer["🗄️ Database & Storage (Supabase)"]
-        PrismaORM["Prisma ORM 6<br/>(Transactions & B-Tree Indexes)"]
-        PostgresDB[("PostgreSQL Database<br/>(Row Level Security / RLS)")]
-        StorageBucket["Supabase Storage<br/>(Foto Produk Roti)"]
+    subgraph Data Layer
+        Prisma[Prisma ORM 6]
+        Postgres[(Supabase PostgreSQL)]
+        Storage[Supabase Object Storage]
     end
 
-    Client --> AppServer
-    AppServer --> AuthMiddleware
+    Client Layer --> NextJS
+    NextJS --> AuthMiddleware
     AuthMiddleware --> ServerActions
-    ServerActions --> PrismaORM
-    PrismaORM --> PostgresDB
-    ServerActions -.-> TelegramBot
-    ServerActions -.-> FastAPI_AI
-    AppServer -.-> StorageBucket
+    ServerActions --> Prisma
+    Prisma --> Postgres
+    ServerActions -.-> TelegramService
+    ServerActions -.-> MLService
+    NextJS -.-> Storage
 ```
 
 ---
 
-## 🔄 Alur Kerja Operasional (Workflow)
+## Operational Workflows
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Staff as 🏪 Staf Cabang
-    actor Admin as 👑 Super Admin
-    actor Kitchen as 👨‍🍳 Dapur Pusat
-    actor Customer as 👤 Pelanggan
+    actor Branch as Branch Staff
+    actor Admin as Super Admin
+    actor Kitchen as Central Kitchen
+    actor Customer as Customer
 
-    Note over Customer,Staff: 1. Alur Pemesanan Khusus (Pre-Order)
-    Customer->>Staff: Pesan roti untuk acara (Nama, No HP, Tanggal Ambil, DP)
-    Staff->>Kitchen: Input via Modal Pesanan (Terjadwal Otomatis ke Dapur)
-    Kitchen->>Kitchen: Buka Lembar Kerja Dapur, Panggang Roti & Update Status
-    Kitchen->>Customer: Roti Siap Diambil di Cabang
+    Note over Customer,Kitchen: Custom Order Fulfillment
+    Customer->>Branch: Place custom order (Target date, bread variants, deposit)
+    Branch->>Kitchen: Submit order (Aggregated into daily baking schedule)
+    Kitchen->>Kitchen: Bake allocated volume & update status
+    Kitchen->>Customer: Order ready for pickup at selected branch
 
-    Note over Staff,Admin: 2. Alur Pengajuan Restok Multi-Item
-    Staff->>Admin: Ajukan Restok Batch (Pilih Varian Roti + Jumlah)
-    Admin-->>Admin: Menerima Notifikasi Bot Telegram
-    alt Restok Disetujui
-        Admin->>Staff: Setujui Batch (Stok Bertambah Otomatis via Transaksi DB)
-    else Restok Ditolak
-        Admin->>Staff: Tolak Pengajuan (Disertai Alasan Penolakan)
+    Note over Branch,Admin: Multi-Item Restock Approval
+    Branch->>Admin: Submit batch restock request (REQ-YYYYMMDD-XXXX)
+    Admin-->>Admin: Receive instant Telegram notification
+    alt Approved
+        Admin->>Branch: Approve batch (Atomic transaction increments branch stock)
+    else Rejected
+        Admin->>Branch: Reject request with feedback note
     end
 ```
 
 ---
 
-## 🚀 Fitur Unggulan
+## Core Capabilities
 
-### 1. 📋 Jadwal Dapur & Akumulasi Produksi Roti
-- **Kalkulasi Akumulasi Otomatis**: Menghitung total kebutuhan produksi per hari dari akumulasi pesanan pre-order pelanggan dan kebutuhan restok toko cabang.
-- **Checklist Interaktif**: Baker dapur dapat menandai roti yang sudah matang/selesai dipanggang secara visual.
-- **Lembar Cetak Dapur (*Kitchen Print Sheet*)**: Fitur cetak ramah printer (`window.print`) berformat ringkas untuk ditempel pada papan kerja oven dapur pusat.
-- **Interactive Status Badge**: Pembaruan status pesanan (*Menunggu*, *Diproses*, *Siap Diambil*, *Selesai*, *Batal*) menggunakan custom status pill tanpa pop-up default OS browser.
+### Central Kitchen Baking Schedule
+- Automated Daily Aggregation: Computes exact production targets by consolidating scheduled customer pre-orders with branch replenishment orders.
+- Interactive Production Checklist: Real-time visual tracking for kitchen bakers across oven batches.
+- Print-Optimized Worksheets: Dedicated kitchen print layout formatted for standard receipts and kitchen clipboards.
+- Status Lifecycle Management: Real-time transition tracking through PENDING, IN_PROCESS, READY, COMPLETED, and CANCELLED states.
 
-### 2. 📦 Permintaan & Persetujuan Restok (Batch Workflow)
-- **Multi-Item Restock**: Staf cabang dapat memilih banyak varian roti sekaligus dalam satu nomor batch permintaan (`REQ-YYYYMMDD-XXXX`).
-- **Pencarian Cepat Skalalabel**: Filter dan pencarian nama roti berbasis substring dengan performa tinggi pada ribuan varian produk.
-- **Integrasi Bot Telegram**: Notifikasi otomatis dikirimkan ke grup Super Admin ketika ada permohonan restok baru atau persetujuan restok.
-- **Audit Log Lengkap**: Seluruh riwayat pengajuan, persetujuan, dan penolakan restok tercatat secara permanen di basis data audit.
+### Branch Restock Approval Workflow
+- Batch Submissions: Branch operators group multiple bread variants into a single traceable requisition batch (`REQ-YYYYMMDD-XXXX`).
+- Instant Push Alerts: Automated Telegram bot notifications sent directly to administrator channels upon request submission and approval.
+- Transactional Consistency: Stock replenishment executed via atomic PostgreSQL transactions to prevent inventory drift.
+- Audit Trail: Immutable logging of requester identity, approver credentials, timestamps, and item quantities.
 
-### 3. 💳 Kasir POS & Manajemen Penjualan
-- **Multi-Store Management**: Mendukung banyak gerai dengan penentuan harga, diskon, dan batas minimum stok individual per cabang.
-- **Pencatatan Penjualan Cepat**: Pengurangan stok cabang seketika saat kasir memproses transaksi.
-- **Verifikasi Struk & Bukti Transfer**: Upload bukti pembayaran transfer bank/QRIS ke Supabase Storage.
+### Point of Sale & Inventory Tracking
+- Multi-Store Isolation: Independent stock levels, price overrides, and low-inventory warning thresholds per branch.
+- POS Checkout: Instant decrement of store inventory upon sale confirmation.
+- Payment Verification: Storage and verification workflows for digital payment receipts.
 
-### 4. 📈 Analitik Penjualan & AI Demand Forecasting
-- **Grafik Interaktif Recharts**: Visualisasi omzet, laba kotor, dan breakdown performa produk per cabang dengan penanganan *zero-layout shift*.
-- **Machine Learning Forecasting**: Integrasi dengan API eksternal TimesFM untuk memproyeksikan kebutuhan stok minggu berikutnya.
+### Analytics & Forecasting
+- Recharts Dashboard: Interactive gross revenue, profit margins, and branch comparative charts with zero layout-shift guards.
+- Demand Forecasting: Integration points for predictive machine learning models to forecast upcoming bread demand.
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
-| Lapisan | Teknologi |
+| Layer | Technology |
 |---|---|
-| **Frontend Framework** | [Next.js 16](https://nextjs.org/) (App Router, Turbopack, Server Actions) |
-| **UI Library** | [React 19](https://react.dev/), [Tailwind CSS v4](https://tailwindcss.com/), [Lucide React](https://lucide.dev/) |
-| **Data Visualization** | [Recharts](https://recharts.org/) |
-| **Database & ORM** | [PostgreSQL (Supabase)](https://supabase.com/), [Prisma ORM 6](https://www.prisma.io/) |
-| **Autentikasi** | Session Cookie terenkripsi JWT (jose) + Password hashing bcrypt |
-| **Notifikasi** | Telegram Bot API |
-| **Ekspor Data** | ExcelJS (`.xlsx`) |
+| Framework | Next.js 16 (App Router, Turbopack, Server Actions) |
+| Runtime & Language | Node.js, TypeScript |
+| UI & Styling | React 19, Tailwind CSS v4, Lucide React |
+| Charts & Visualization | Recharts |
+| Database & ORM | PostgreSQL (Supabase), Prisma ORM 6 |
+| Authentication | Encrypted JWT HTTP-only cookies (jose), bcrypt |
+| External Integration | Telegram Bot API, ExcelJS |
 
 ---
 
-## 📁 Struktur Direktori
+## Project Structure
 
 ```text
-├── app/                        # Next.js App Router
-│   ├── (dashboard)/            # Halaman Dashboard Terproteksi (Layout & Sidebar)
-│   │   ├── audit/              # Log Aktivitas & Jejak Keamanan
-│   │   ├── forecast/           # Analisis & AI Demand Forecast
-│   │   ├── orders/             # Jadwal Dapur & Manajemen Pre-Order Roti
-│   │   ├── products/           # Master Data Produk Roti
-│   │   ├── reports/            # Laporan Penjualan & Ekspor Excel
-│   │   └── stores/             # Monitoring Cabang & Alur Restok
-│   ├── api/                    # Endpoint API (Upload, Export, Notify)
-│   └── login/                  # Halaman Autentikasi Pengguna
-├── components/                 # Komponen UI Reusable
-│   ├── BakingScheduleClient.tsx# Antarmuka Jadwal Produksi & Pre-Order
-│   ├── CreateOrderModal.tsx    # Modal Pembuatan Pesanan Pelanggan Baru
-│   ├── CustomDropdown.tsx      # Komponen Dropdown Kustom (Bebas OS Template)
-│   ├── RestockForm.tsx         # Formulir Pengajuan Restok Multi-Item
-│   ├── PendingRestockList.tsx  # Panel Persetujuan Restok Super Admin
-│   └── SalesChart.tsx          # Grafik Tren Penjualan Harian
-├── lib/                        # Core Utilities & Server Actions
-│   ├── actions/                # Server Actions (Auth, Product, Order, Audit)
-│   ├── audit.ts                # Audit Logger Utility
-│   ├── db.ts                   # Prisma Client Singleton
-│   ├── session.ts              # Enkripsi & Dekripsi JWT Session
-│   └── telegram.ts             # Client Notifikasi Bot Telegram
+├── app/
+│   ├── (dashboard)/
+│   │   ├── audit/              # Activity and security audit logs
+│   │   ├── forecast/           # Sales analytics and demand projection
+│   │   ├── orders/             # Central kitchen schedule & customer orders
+│   │   ├── products/           # Master catalog management
+│   │   ├── reports/            # Sales reporting and XLSX export
+│   │   └── stores/             # Branch inventory & restock operations
+│   ├── api/                    # File uploads, report streaming, alerts
+│   └── login/                  # User authentication
+├── components/                 # Reusable UI components
+│   ├── BakingScheduleClient.tsx# Kitchen schedule and pre-order management
+│   ├── CreateOrderModal.tsx    # Order creation modal with product search
+│   ├── CustomDropdown.tsx      # Headless custom popover dropdown system
+│   ├── RestockForm.tsx         # Multi-item batch restock submission form
+│   ├── PendingRestockList.tsx  # Administrator restock approval review panel
+│   └── SalesChart.tsx          # Responsive revenue and sales charts
+├── lib/
+│   ├── actions/                # Next.js Server Actions
+│   ├── audit.ts                # Audit logging engine
+│   ├── db.ts                   # Prisma client singleton
+│   ├── session.ts              # JWT session encryption and verification
+│   └── telegram.ts             # Telegram webhook dispatcher
 ├── prisma/
-│   └── schema.prisma           # Skema Data PostgreSQL + Indeks Performa B-Tree
-└── scripts/                    # Skrip Utilitas & Generator Data Uji
+│   └── schema.prisma           # Database schema and B-tree indexes
+└── scripts/                    # Database migrations and test seeders
 ```
 
 ---
 
-## ⚙️ Panduan Menjalankan Secara Lokal
+## Local Development Setup
 
-### 1. Prasyarat Sistem
-- **Node.js**: v18.18.0 atau lebih baru (direkomendasikan v20+)
-- **NPM**: v9+ atau **pnpm / yarn**
-- Instance database **PostgreSQL** (misal: Supabase)
+### Prerequisites
+- Node.js 18.18 or higher (Node 20+ recommended)
+- PostgreSQL database instance (local or Supabase)
 
-### 2. Kloning & Pemasangan Dependensi
-```bash
-git clone https://github.com/Ferdyagustian/FE-Family-Bakery-Stok-WEB.git
-cd FE-Family-Bakery-Stok-WEB
-npm install
-```
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Ferdyagustian/FE-Family-Bakery-Stok-WEB.git
+   cd FE-Family-Bakery-Stok-WEB
+   ```
 
-### 3. Konfigurasi Lingkungan (`.env`)
-Salin berkas `.env.example` menjadi `.env`:
-```bash
-cp .env.example .env
-```
-Lengkapi variabel berikut di dalam `.env`:
-```env
-# Koneksi Basis Data PostgreSQL
-DATABASE_URL="postgresql://postgres.[REF]:[PASS]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true"
-DIRECT_URL="postgresql://postgres.[REF]:[PASS]@aws-0-[REGION].pooler.supabase.com:5432/postgres"
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-# Enkripsi Sesi JWT (Minimal 32 karakter unik)
-JWT_SECRET="masukkan-string-acak-rahasia-minimal-32-karakter"
+3. Configure environment variables:
+   Create a `.env` file in the project root:
+   ```env
+   DATABASE_URL="postgresql://user:password@host:port/database?pgbouncer=true"
+   DIRECT_URL="postgresql://user:password@host:port/database"
+   JWT_SECRET="generate-a-secure-random-32-byte-string"
+   NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+   NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
+   SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
+   TELEGRAM_BOT_TOKEN="your-bot-token"
+   TELEGRAM_CHAT_ID="your-chat-id"
+   ```
 
-# Supabase Storage (Gambar Produk)
-NEXT_PUBLIC_SUPABASE_URL="https://xxxxxxxxxxxx.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOi..."
-SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOi..."
+4. Push database schema:
+   ```bash
+   npx prisma db push
+   ```
 
-# Bot Telegram (Opsional - untuk notifikasi restok)
-TELEGRAM_BOT_TOKEN="123456789:ABCdefGhIJKlmNoPQRstUVwxyZ"
-TELEGRAM_CHAT_ID="-1001234567890"
-```
-
-### 4. Sinkronisasi Skema Database
-```bash
-npx prisma db push
-```
-
-### 5. Menjalankan Server Pengembang
-```bash
-npm run dev
-```
-Akses aplikasi melalui peramban di [http://localhost:3000](http://localhost:3000).
+5. Start the development server:
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 🔒 Praktik Keamanan
+## Security Specifications
 
-- **Zero Secret Leakage**: File `.env` dikecualikan secara ketat oleh `.gitignore`.
-- **Role-Based Access Control (RBAC)**: Pemisahan hak akses antara `ADMIN` (Super Admin) dan `STORE_USER` (Kasir / Staf Cabang) di level server action dan middleware.
-- **Database Row Level Security (RLS)**: Perlindungan data langsung di level PostgreSQL Supabase untuk mencegah akses lintas cabang tidak sah.
-- **Audit Trail**: Seluruh tindakan finansial dan perubahan stok terekam dengan timestamp, ID pengguna, dan detail mutasi.
+- Environment Isolation: `.env` and local secrets are excluded via `.gitignore`.
+- Role-Based Access Control: Granular role separation (`ADMIN` vs `STORE_USER`) enforced at middleware, API route, and database action layers.
+- Row-Level Security: PostgreSQL database security policies preventing cross-branch unauthorized access.
+- Audit Trail: Immutable event logging for critical state mutations (logins, stock adjustments, order modifications).
 
 ---
 
-## 📄 Lisensi
-Hak Cipta © 2026 **Family Bakery**. Seluruh hak cipta dilindungi undang-undang.
+## License
+
+Proprietary software. All rights reserved by Family Bakery.
