@@ -356,7 +356,7 @@ export function ProductSalesBreakdown({
                         style={{ width: `${Math.min(100, Math.max(2, revenuePercent))}%` }}
                       />
                     </div>
-                    <div className="flex justify-between items-center text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+                    <div className="flex justify-between items-center text-[10px] text-gray-600 dark:text-gray-400 mt-1">
                       <span>Kontribusi Omzet</span>
                       <span className="font-semibold text-gray-600 dark:text-gray-300">{revenuePercent.toFixed(1)}%</span>
                     </div>

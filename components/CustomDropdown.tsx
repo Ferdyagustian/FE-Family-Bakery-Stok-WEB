@@ -81,7 +81,7 @@ export function CustomDropdown({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(prev => !prev)}
-        className={`w-full flex items-center justify-between gap-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 font-semibold outline-none transition-all shadow-xs hover:border-gray-300 dark:hover:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer ${
+        className={`w-full flex items-center justify-between gap-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 font-semibold outline-none transition-colors shadow-xs hover:border-gray-300 dark:hover:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer ${
           isSmall ? 'text-[11px] px-2.5 py-1.5' : 'text-xs px-3 py-2'
         } ${buttonClassName}`}
         aria-haspopup="listbox"
@@ -231,7 +231,7 @@ export function CustomStatusDropdown({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(prev => !prev)}
-        className={`inline-flex items-center gap-1.5 font-bold rounded-lg border shadow-2xs cursor-pointer outline-none transition-all focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed select-none ${
+        className={`inline-flex items-center gap-1.5 font-bold rounded-lg border shadow-2xs cursor-pointer outline-none transition-colors focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed select-none ${
           isSmall ? 'text-[11px] px-2 py-1' : 'text-xs px-2.5 py-1.5'
         } ${current.badge}`}
         title="Ubah status pesanan"

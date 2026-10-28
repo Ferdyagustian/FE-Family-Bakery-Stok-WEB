@@ -246,30 +246,30 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
           <div className="inline-flex rounded-xl bg-gray-100 dark:bg-gray-800 p-1 border border-gray-200/60 dark:border-gray-700/60 flex-wrap">
             <button
               onClick={() => setType('sales')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                 type === 'sales'
                   ? 'bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  : 'text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               Laporan Penjualan
             </button>
             <button
               onClick={() => setType('stock')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                 type === 'stock'
                   ? 'bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  : 'text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               Laporan Stok Produk
             </button>
             <button
               onClick={() => setType('returns')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                 type === 'returns'
                   ? 'bg-white dark:bg-gray-900 text-rose-600 dark:text-rose-400 shadow-xs'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  : 'text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               Barang Retur
@@ -383,7 +383,7 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
             <p className="text-lg sm:text-xl font-heading font-extrabold text-gray-900 dark:text-white mt-2" title={formatFullRupiah(totalOmzet)}>
               {formatCompactRupiah(totalOmzet)}
             </p>
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
               {data.length > 0 ? 'Omzet terfilter' : 'Belum ada transaksi'}
             </p>
           </div>
@@ -391,7 +391,7 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
           {/* Card 2: Roti Terjual */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 border border-gray-100 dark:border-gray-800 shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Roti Terjual</span>
+              <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Roti Terjual</span>
               <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
                 <ShoppingBag className="w-4 h-4" />
               </div>
@@ -399,7 +399,7 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
             <p className="text-lg sm:text-xl font-heading font-extrabold text-gray-900 dark:text-white mt-2">
               {totalQtySold.toLocaleString('id-ID')} <span className="text-xs font-normal text-gray-500">unit</span>
             </p>
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
               Total volume item
             </p>
           </div>
@@ -407,7 +407,7 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
           {/* Card 3: Total Transaksi */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 border border-gray-100 dark:border-gray-800 shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Total Baris Transaksi</span>
+              <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Total Baris Transaksi</span>
               <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
                 <Receipt className="w-4 h-4" />
               </div>
@@ -415,7 +415,7 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
             <p className="text-lg sm:text-xl font-heading font-extrabold text-gray-900 dark:text-white mt-2">
               {data.length.toLocaleString('id-ID')}
             </p>
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
               Riwayat penjualan tercatat
             </p>
           </div>
@@ -423,7 +423,7 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
           {/* Card 4: Estimasi Profit */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 border border-gray-100 dark:border-gray-800 shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Estimasi Margin (35%)</span>
+              <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Estimasi Margin (35%)</span>
               <div className="p-2 rounded-xl bg-violet-50 dark:bg-violet-950/50 text-violet-600 dark:text-violet-400">
                 <TrendingUp className="w-4 h-4" />
               </div>
@@ -431,7 +431,7 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
             <p className="text-lg sm:text-xl font-heading font-extrabold text-emerald-600 dark:text-emerald-400 mt-2" title={formatFullRupiah(totalProfit)}>
               {formatCompactRupiah(totalProfit)}
             </p>
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
               Gross profit bakery
             </p>
           </div>
@@ -443,7 +443,7 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
           <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 border border-gray-100 dark:border-gray-800 shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Total Barang Retur</span>
+              <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Total Barang Retur</span>
               <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400">
                 <PackageCheck className="w-4 h-4" />
               </div>
@@ -451,14 +451,14 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
             <p className="text-lg sm:text-xl font-heading font-extrabold text-rose-600 dark:text-rose-400 mt-2">
               {totalQtyReturned.toLocaleString('id-ID')} <span className="text-xs font-normal text-gray-500">unit</span>
             </p>
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
               Roti/cake tidak terjual atau rusak
             </p>
           </div>
 
           <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 border border-gray-100 dark:border-gray-800 shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Estimasi Nilai Barang</span>
+              <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Estimasi Nilai Barang</span>
               <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
                 <DollarSign className="w-4 h-4" />
               </div>
@@ -466,14 +466,14 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
             <p className="text-lg sm:text-xl font-heading font-extrabold text-gray-900 dark:text-white mt-2" title={formatFullRupiah(totalEstimatedLoss)}>
               {formatCompactRupiah(totalEstimatedLoss)}
             </p>
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
               Nilai retail barang yang diretur
             </p>
           </div>
 
           <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 border border-gray-100 dark:border-gray-800 shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Frekuensi Pencatatan</span>
+              <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Frekuensi Pencatatan</span>
               <div className="p-2 rounded-xl bg-violet-50 dark:bg-violet-950/50 text-violet-600 dark:text-violet-400">
                 <Receipt className="w-4 h-4" />
               </div>
@@ -481,7 +481,7 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
             <p className="text-lg sm:text-xl font-heading font-extrabold text-gray-900 dark:text-white mt-2">
               {data.length.toLocaleString('id-ID')} kali
             </p>
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
               Riwayat retur tercatat
             </p>
           </div>
@@ -495,14 +495,14 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
         <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row gap-3 items-center justify-between">
           <div className="flex items-center gap-2">
             <Table2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-            <h3 className="font-heading font-bold text-sm sm:text-base text-gray-900 dark:text-white">
+            <h2 className="font-heading font-bold text-sm sm:text-base text-gray-900 dark:text-white">
               {type === 'sales'
                 ? 'Rincian Transaksi Penjualan'
                 : type === 'returns'
                 ? 'Rincian Barang Retur & Sisa'
                 : 'Rincian Stok Produk Toko'}
-            </h3>
-            <span className="text-xs text-gray-400 dark:text-gray-500">
+            </h2>
+            <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
               ({filteredData.length} data)
             </span>
           </div>
@@ -525,15 +525,15 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
         {/* Table Content */}
         <div className="overflow-x-auto">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+            <div className="flex flex-col items-center justify-center py-16 text-gray-600 dark:text-gray-400">
               <Loader2 className="w-8 h-8 animate-spin mb-2 text-indigo-600" />
-              <p className="text-xs">Memuat data laporan...</p>
+              <p className="text-xs font-medium">Memuat data laporan...</p>
             </div>
           ) : filteredData.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500">
+            <div className="flex flex-col items-center justify-center py-16 text-gray-600 dark:text-gray-400">
               <PackageCheck className="w-12 h-12 opacity-30 mb-2" />
               <p className="text-sm font-semibold">Tidak ada transaksi ditemukan</p>
-              <p className="text-xs text-gray-400 mt-0.5">Coba ubah rentang tanggal atau cabang di filter atas</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Coba ubah rentang tanggal atau cabang di filter atas</p>
             </div>
           ) : (
             <table className="w-full text-left text-xs">

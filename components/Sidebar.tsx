@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Store as StoreIcon, FileSpreadsheet, LogOut, X, ClipboardList, Package, BrainCircuit, ChefHat } from 'lucide-react'
 import { logoutAction } from '@/lib/actions/auth'
@@ -48,14 +49,14 @@ export function Sidebar({ onClose, showCloseButton, user }: SidebarProps) {
         <Link href="/" className="flex items-center space-x-3 group">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-indigo-600 flex items-center justify-center p-0.5 shadow-sm overflow-hidden flex-shrink-0 group-hover:scale-105 transition-transform">
             <div className="w-full h-full bg-white dark:bg-gray-900 rounded-[10px] flex items-center justify-center">
-              <img src="/logo.png" alt="Family Bakery" className="w-6 h-6 object-contain" />
+              <Image src="/logo.png" alt="Family Bakery" width={24} height={24} className="w-6 h-6 object-contain" priority />
             </div>
           </div>
           <div className="flex flex-col">
             <span className="text-sm font-heading font-extrabold text-gray-900 dark:text-white tracking-tight">
               Family Bakery
             </span>
-            <span className="text-[10px] text-gray-400 font-medium tracking-wide">
+            <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">
               SISTEM INVENTARIS &amp; POS
             </span>
           </div>
@@ -138,13 +139,13 @@ export function Sidebar({ onClose, showCloseButton, user }: SidebarProps) {
         <form action={logoutAction}>
           <button
             type="submit"
-            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 bg-white dark:bg-gray-800/80 border border-gray-200/60 dark:border-gray-700/60 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:border-rose-200 dark:hover:border-rose-900/40 transition-all shadow-xs"
+            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 bg-white dark:bg-gray-800/80 border border-gray-200/60 dark:border-gray-700/60 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:border-rose-200 dark:hover:border-rose-900/40 transition-colors shadow-xs"
           >
             <span className="flex items-center gap-2">
               <LogOut className="w-4 h-4 flex-shrink-0" />
               <span>Keluar (Logout)</span>
             </span>
-            <span className="text-[10px] text-gray-400 font-medium px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded">
+            <span className="text-[10px] text-gray-600 dark:text-gray-300 font-medium px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded">
               {user?.role || 'User'}
             </span>
           </button>

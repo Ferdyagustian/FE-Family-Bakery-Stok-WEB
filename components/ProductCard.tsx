@@ -163,7 +163,7 @@ export function ProductCard({
           <div>
             {hasDiscount ? (
               <div className="flex flex-col">
-                <span className="text-[10px] text-gray-400 line-through">
+                <span className="text-[10px] text-gray-500 dark:text-gray-400 line-through">
                   Rp {product.price.toLocaleString('id-ID')}
                 </span>
                 <span className="font-extrabold text-sm sm:text-base text-indigo-600 dark:text-indigo-400">

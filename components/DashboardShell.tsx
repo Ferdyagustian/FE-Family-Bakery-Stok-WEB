@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { Sidebar } from '@/components/Sidebar'
 import { LowStockAlert } from '@/components/LowStockAlert'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -69,7 +70,7 @@ export function DashboardShell({
             {/* Logo (mobile only) */}
             <div className="lg:hidden flex items-center space-x-2">
               <div className="w-8 h-8 rounded-lg bg-white dark:bg-gray-900 flex items-center justify-center p-0.5 shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
-                <img src="/logo.png" alt="Family Bakery Logo" className="w-full h-full object-contain" />
+                <Image src="/logo.png" alt="Family Bakery Logo" width={32} height={32} className="w-full h-full object-contain" />
               </div>
               <span className="font-heading font-bold text-gray-900 dark:text-white text-sm">Family Bakery</span>
             </div>

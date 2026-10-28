@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { loginAction } from '@/lib/actions/auth'
 import { PasswordInput } from '@/components/PasswordInput'
 import { AlertCircle } from 'lucide-react'
@@ -26,12 +27,12 @@ export default async function LoginPage(props: { searchParams: SearchParams }) {
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <div className="flex justify-center">
           <div className="w-16 h-16 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-center p-2.5">
-            <img src="/logo.png" alt="Family Bakery Logo" className="w-full h-full object-contain" />
+            <Image src="/logo.png" alt="Family Bakery Logo" width={48} height={48} className="w-full h-full object-contain" priority />
           </div>
         </div>
-        <h2 className="mt-4 text-center text-2xl sm:text-3xl font-heading font-extrabold text-gray-900 dark:text-white tracking-tight">
+        <h1 className="mt-4 text-center text-2xl sm:text-3xl font-heading font-extrabold text-gray-900 dark:text-white tracking-tight">
           Family Bakery
-        </h2>
+        </h1>
         <p className="mt-1 text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400">
           Sistem Kasir POS &amp; Inventaris Bakery
         </p>

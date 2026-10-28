@@ -524,7 +524,7 @@ export function BakingScheduleClient({
                           </a>
                         </div>
                         <div className="text-right">
-                          <span className="text-[10px] text-gray-400 block font-medium">Target Ambil:</span>
+                          <span className="text-[10px] text-gray-600 dark:text-gray-400 block font-medium">Target Ambil:</span>
                           <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-1 justify-end mt-0.5">
                             <Calendar className="w-3 h-3 text-indigo-500" />
                             {pickupStr}
@@ -541,7 +541,7 @@ export function BakingScheduleClient({
 
                       {/* Items Ordered Chips */}
                       <div className="bg-gray-50/80 dark:bg-gray-800/40 rounded-xl p-2.5 text-xs space-y-1">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                        <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider block">
                           Rincian Roti:
                         </span>
                         <div className="flex flex-wrap gap-1.5">
@@ -560,7 +560,7 @@ export function BakingScheduleClient({
                       {/* Financial Footer */}
                       <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-gray-800/60 text-xs">
                         <div>
-                          <span className="text-[10px] text-gray-400 block">Total Tagihan</span>
+                          <span className="text-[10px] text-gray-600 dark:text-gray-400 block">Total Tagihan</span>
                           <span className="font-extrabold text-sm text-gray-900 dark:text-white">
                             {formatFullRupiah(order.totalAmount)}
                           </span>

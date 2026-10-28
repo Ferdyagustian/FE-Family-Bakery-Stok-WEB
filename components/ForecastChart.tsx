@@ -39,7 +39,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                 <span className="text-gray-300 font-medium truncate max-w-[140px]">{entry.name}</span>
               </div>
               <span className="font-bold text-white">
-                {entry.value} <span className="text-[10px] text-gray-400 font-normal">unit</span>
+                {entry.value} <span className="text-[10px] text-gray-300 font-normal">unit</span>
               </span>
             </div>
           ))}

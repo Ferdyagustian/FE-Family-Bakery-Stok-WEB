@@ -52,9 +52,9 @@ export default async function StoresPage() {
                   <StoreIcon className="w-6 h-6" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-primary-700 transition-colors truncate">
+                  <h2 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-primary-700 transition-colors truncate">
                     {store.name}
-                  </h3>
+                  </h2>
                   {store.location && (
                     <p className="flex items-center text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                       <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
