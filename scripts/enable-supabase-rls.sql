@@ -8,38 +8,51 @@
 -- Koneksi Prisma (Next.js server) menggunakan role 'postgres' yang memiliki BYPASSRLS,
 -- sehingga seluruh fitur kasir, produk, laporan, dll. tetap bekerja 100% normal.
 
-ALTER TABLE "User" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Store" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Product" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "StoreProduct" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Sale" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "AuditLog" ENABLE ROW LEVEL SECURITY;
+DO $$
+DECLARE
+  r RECORD;
+BEGIN
+  FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+    EXECUTE 'ALTER TABLE public."' || r.tablename || '" ENABLE ROW LEVEL SECURITY;';
+  END LOOP;
+END $$;
+
+-- Eksplisit untuk tabel yang ada saat ini:
+ALTER TABLE IF EXISTS "User" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "Store" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "Product" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "StoreProduct" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "Sale" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "AuditLog" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "RestockRequest" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "CustomOrder" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "CustomOrderItem" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "ProductReturn" ENABLE ROW LEVEL SECURITY;
 
 -- 2. SUPABASE STORAGE BUCKET: 'products'
 -- Izinkan publik hanya MEMBACA gambar produk (Public Read)
 DO $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies 
-    WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Public Read Products Images'
-  ) THEN
-    CREATE POLICY "Public Read Products Images"
-    ON storage.objects FOR SELECT
-    USING (bucket_id = 'products');
-  END IF;
-END $$;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'storage' AND table_name = 'objects') THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_policies 
+      WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Public Read Products Images'
+    ) THEN
+      CREATE POLICY "Public Read Products Images"
+      ON storage.objects FOR SELECT
+      USING (bucket_id = 'products');
+    END IF;
 
--- Izinkan upload/delete hanya melalui Server (Service Role / Admin)
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies 
-    WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Server Only Manage Products Images'
-  ) THEN
-    CREATE POLICY "Server Only Manage Products Images"
-    ON storage.objects FOR ALL
-    USING (bucket_id = 'products' AND auth.role() = 'service_role')
-    WITH CHECK (bucket_id = 'products' AND auth.role() = 'service_role');
+    -- Izinkan upload/delete hanya melalui Server (Service Role / Admin)
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_policies 
+      WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Server Only Manage Products Images'
+    ) THEN
+      CREATE POLICY "Server Only Manage Products Images"
+      ON storage.objects FOR ALL
+      USING (bucket_id = 'products' AND auth.role() = 'service_role')
+      WITH CHECK (bucket_id = 'products' AND auth.role() = 'service_role');
+    END IF;
   END IF;
 END $$;
 

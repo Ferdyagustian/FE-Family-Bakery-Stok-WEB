@@ -1,20 +1,44 @@
 const { PrismaClient } = require('@prisma/client')
-const fs = require('fs')
-const path = require('path')
 
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('[RLS] Menerapkan Row Level Security (RLS) dan Database Constraints...')
+  console.log('[RLS] Menerapkan Row Level Security (RLS) dan Database Hardening...')
 
-  // 1. Aktifkan RLS pada tabel-tabel utama
-  const tables = ['User', 'Store', 'Product', 'StoreProduct', 'Sale', 'AuditLog']
-  for (const table of tables) {
-    try {
-      await prisma.$executeRawUnsafe(`ALTER TABLE "${table}" ENABLE ROW LEVEL SECURITY;`)
-      console.log(`  [OK] RLS diaktifkan pada tabel: "${table}"`)
-    } catch (err) {
-      console.warn(`  [WARN] Peringatan pada "${table}":`, err.message)
+  // 1. Aktifkan RLS secara dinamis ke seluruh tabel dalam schema 'public'
+  try {
+    await prisma.$executeRawUnsafe(`
+      DO $$
+      DECLARE
+        r RECORD;
+      BEGIN
+        FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+          EXECUTE 'ALTER TABLE public."' || r.tablename || '" ENABLE ROW LEVEL SECURITY;';
+        END LOOP;
+      END $$;
+    `)
+    console.log('  [OK] RLS berhasil diaktifkan secara menyeluruh pada semua tabel schema public.')
+  } catch (err) {
+    console.warn('  [WARN] Dinamis RLS gagal, mencoba per tabel:', err.message)
+    const tables = [
+      'User',
+      'Store',
+      'Product',
+      'StoreProduct',
+      'Sale',
+      'AuditLog',
+      'RestockRequest',
+      'CustomOrder',
+      'CustomOrderItem',
+      'ProductReturn',
+    ]
+    for (const table of tables) {
+      try {
+        await prisma.$executeRawUnsafe(`ALTER TABLE "${table}" ENABLE ROW LEVEL SECURITY;`)
+        console.log(`  [OK] RLS diaktifkan pada: "${table}"`)
+      } catch (e) {
+        console.warn(`  [WARN] Peringatan pada "${table}":`, e.message)
+      }
     }
   }
 
@@ -65,6 +89,20 @@ async function main() {
     console.log('  [OK] Kebijakan RLS storage.objects berhasil dikonfigurasi.')
   } catch (err) {
     console.warn('  [INFO] Storage RLS warning (dapat dikonfigurasi via Supabase Dashboard):', err.message)
+  }
+
+  // 4. Verifikasi status RLS seluruh tabel public
+  try {
+    const status = await prisma.$queryRawUnsafe(`
+      SELECT tablename, rowsecurity 
+      FROM pg_tables 
+      WHERE schemaname = 'public' 
+      ORDER BY tablename;
+    `)
+    console.log('\n[STATUS] Status RLS Tabel Public Supabase:')
+    console.table(status)
+  } catch (err) {
+    console.warn('  [WARN] Gagal membaca status RLS:', err.message)
   }
 
   console.log('\n[DONE] Penguatan Supabase RLS selesai!')
