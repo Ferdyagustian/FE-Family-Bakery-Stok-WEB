@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { approveRestockBatch, rejectRestockBatch } from '@/lib/actions/product'
-import { CheckCircle2, XCircle, Clock, PackageCheck, AlertTriangle, Store, ChevronDown, ChevronUp } from 'lucide-react'
+import { CheckCircle2, Clock, Store, ChevronDown, ChevronUp } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface PendingBatch {

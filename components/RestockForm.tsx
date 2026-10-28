@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { submitRestockRequest } from '@/lib/actions/product'
-import { Package, RotateCcw, CheckCircle2, AlertCircle, Search, ArrowUpRight, MessageSquare } from 'lucide-react'
+import { Package, RotateCcw, CheckCircle2, AlertCircle, Search, ArrowUpRight } from 'lucide-react'
 import Image from 'next/image'
 
 type Product = {

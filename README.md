@@ -14,31 +14,33 @@ Family Bakery Web provides end-to-end management for distributed bakery operatio
 
 ```mermaid
 graph TD
-    subgraph Client Layer
-        AdminUI[Super Admin Dashboard]
-        StoreUI[Branch Store POS & Inventory]
-        KitchenUI[Central Kitchen Baking Sheet]
+    subgraph Client["Client Layer"]
+        AdminUI["Super Admin Dashboard"]
+        StoreUI["Branch Store POS & Inventory"]
+        KitchenUI["Central Kitchen Baking Sheet"]
     end
 
-    subgraph Application Server
-        NextJS[Next.js 16 App Router]
-        AuthMiddleware[JWT Session & RBAC Guard]
-        ServerActions[Server Actions API Layer]
-        CustomUI[Tailwind CSS Design System]
+    subgraph AppServer["Application Server"]
+        NextJS["Next.js 16 App Router"]
+        AuthMiddleware["JWT Session & RBAC Guard"]
+        ServerActions["Server Actions API Layer"]
+        CustomUI["Tailwind CSS Design System"]
     end
 
-    subgraph External Services
-        TelegramService[Telegram Bot Webhook]
-        MLService[FastAPI Demand Forecasting Service]
+    subgraph ExternalServices["External Services"]
+        TelegramService["Telegram Bot Webhook"]
+        MLService["FastAPI Demand Forecasting Service"]
     end
 
-    subgraph Data Layer
-        Prisma[Prisma ORM 6]
-        Postgres[(Supabase PostgreSQL)]
-        Storage[Supabase Object Storage]
+    subgraph DataLayer["Data Layer"]
+        Prisma["Prisma ORM 6"]
+        Postgres[("Supabase PostgreSQL")]
+        Storage["Supabase Object Storage"]
     end
 
-    Client Layer --> NextJS
+    AdminUI --> NextJS
+    StoreUI --> NextJS
+    KitchenUI --> NextJS
     NextJS --> AuthMiddleware
     AuthMiddleware --> ServerActions
     ServerActions --> Prisma

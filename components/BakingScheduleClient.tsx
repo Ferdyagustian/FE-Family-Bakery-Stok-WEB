@@ -5,9 +5,9 @@ import { getBakingSchedule, updateOrderStatus, deleteCustomOrder, OrderStatus } 
 import { CreateOrderModal } from '@/components/CreateOrderModal'
 import { CustomDropdown, CustomStatusDropdown } from '@/components/CustomDropdown'
 import { 
-  Calendar, Printer, CheckCircle2, Clock, ChefHat, 
-  Search, Filter, Store, Phone, User, ArrowRight, 
-  Trash2, AlertCircle, ShoppingBag, CheckSquare, Square, X, ChevronDown
+  Calendar, Printer, ChefHat, 
+  Search, Filter, Store, Phone, 
+  Trash2, ShoppingBag, CheckSquare, Square, X
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatFullRupiah } from '@/lib/format'

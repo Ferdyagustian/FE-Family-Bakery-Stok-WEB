@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useMemo } from 'react'
 import { createCustomOrder } from '@/lib/actions/order'
-import { Plus, Calendar, User, Phone, Store, DollarSign, X, CheckCircle2, ShoppingBag, Search, ChevronDown } from 'lucide-react'
+import { Plus, Calendar, User, Phone, Store, DollarSign, X, Search } from 'lucide-react'
 import { CustomDropdown } from '@/components/CustomDropdown'
 import { toast } from 'sonner'
 import { formatFullRupiah } from '@/lib/format'
