@@ -8,7 +8,6 @@ const SalesChart = dynamic(
     loading: () => (
       <div className="h-72 w-full animate-pulse bg-gray-50 dark:bg-gray-800/40 rounded-2xl border border-gray-100 dark:border-gray-800" />
     ),
-    ssr: false,
   }
 )
 
@@ -18,7 +17,6 @@ const ProductSalesBreakdown = dynamic(
     loading: () => (
       <div className="h-96 w-full animate-pulse bg-gray-50 dark:bg-gray-800/40 rounded-2xl border border-gray-100 dark:border-gray-800" />
     ),
-    ssr: false,
   }
 )
 import { Store, Package, TrendingUp, CircleDollarSign, Boxes, PackageMinus } from 'lucide-react'
