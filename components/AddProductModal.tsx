@@ -5,21 +5,29 @@ import { addStoreProduct } from '@/lib/actions/product'
 import { useRouter } from 'next/navigation'
 import { X, Package } from 'lucide-react'
 import { toast } from 'sonner'
+import { CustomDropdown } from '@/components/CustomDropdown'
 
 export function AddProductModal({ storeId, masterProducts = [] }: { storeId: string, masterProducts?: any[] }) {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [selectedProductId, setSelectedProductId] = useState('')
   const router = useRouter()
 
   const handleClose = () => {
+    setSelectedProductId('')
     setIsOpen(false)
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (!selectedProductId) {
+      toast.error('Pilih produk dari katalog terlebih dahulu')
+      return
+    }
     setLoading(true)
     const formData = new FormData(e.currentTarget)
     formData.append('storeId', storeId)
+    formData.set('productId', selectedProductId)
 
     const res = await addStoreProduct(formData)
     setLoading(false)
@@ -56,24 +64,19 @@ export function AddProductModal({ storeId, masterProducts = [] }: { storeId: str
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">
                   Pilih Produk <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Package className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <select 
-                    name="productId" 
-                    required 
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-transparent text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none"
-                    defaultValue=""
-                  >
-                    <option value="" disabled className="text-gray-500">-- Pilih Produk dari Katalog --</option>
-                    {masterProducts.map((p) => (
-                      <option key={p.id} value={p.id} className="text-gray-900 dark:text-gray-100 dark:bg-gray-800">
-                        {p.name} - Rp {p.price.toLocaleString('id-ID')}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <CustomDropdown
+                  value={selectedProductId}
+                  onChange={setSelectedProductId}
+                  icon={<Package className="h-4 w-4" />}
+                  options={masterProducts.map((p) => ({
+                    value: p.id,
+                    label: `${p.name} - Rp ${p.price.toLocaleString('id-ID')}`
+                  }))}
+                  placeholder="-- Pilih Produk dari Katalog --"
+                  className="w-full"
+                  buttonClassName="h-11"
+                />
+                <input type="hidden" name="productId" value={selectedProductId} />
                 <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                   Produk baru hanya dapat ditambahkan oleh Admin melalui Master Katalog.
                 </p>

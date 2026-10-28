@@ -5,16 +5,16 @@ const path = require('path')
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🔒 Menerapkan Row Level Security (RLS) dan Database Constraints...')
+  console.log('[RLS] Menerapkan Row Level Security (RLS) dan Database Constraints...')
 
   // 1. Aktifkan RLS pada tabel-tabel utama
   const tables = ['User', 'Store', 'Product', 'StoreProduct', 'Sale', 'AuditLog']
   for (const table of tables) {
     try {
       await prisma.$executeRawUnsafe(`ALTER TABLE "${table}" ENABLE ROW LEVEL SECURITY;`)
-      console.log(`  ✅ RLS diaktifkan pada tabel: "${table}"`)
+      console.log(`  [OK] RLS diaktifkan pada tabel: "${table}"`)
     } catch (err) {
-      console.warn(`  ⚠️ Peringatan pada "${table}":`, err.message)
+      console.warn(`  [WARN] Peringatan pada "${table}":`, err.message)
     }
   }
 
@@ -30,9 +30,9 @@ async function main() {
         END IF;
       END $$;
     `)
-    console.log('  ✅ Check constraint "chk_stock_non_negative" berhasil diterapkan pada StoreProduct.')
+    console.log('  [OK] Check constraint "chk_stock_non_negative" berhasil diterapkan pada StoreProduct.')
   } catch (err) {
-    console.warn('  ⚠️ Check constraint warning:', err.message)
+    console.warn('  [WARN] Check constraint warning:', err.message)
   }
 
   // 3. Kebijakan Storage Products (jika skema storage tersedia di Supabase)
@@ -62,17 +62,17 @@ async function main() {
         END IF;
       END $$;
     `)
-    console.log('  ✅ Kebijakan RLS storage.objects berhasil dikonfigurasi.')
+    console.log('  [OK] Kebijakan RLS storage.objects berhasil dikonfigurasi.')
   } catch (err) {
-    console.warn('  ℹ️ Storage RLS warning (dapat dikonfigurasi via Supabase Dashboard):', err.message)
+    console.warn('  [INFO] Storage RLS warning (dapat dikonfigurasi via Supabase Dashboard):', err.message)
   }
 
-  console.log('\n🎉 Penguatan Supabase RLS selesai!')
+  console.log('\n[DONE] Penguatan Supabase RLS selesai!')
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Terjadi kesalahan:', e.message)
+    console.error('[ERROR] Terjadi kesalahan:', e.message)
   })
   .finally(async () => {
     await prisma.$disconnect()

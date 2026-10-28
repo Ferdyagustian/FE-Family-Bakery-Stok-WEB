@@ -24,6 +24,7 @@ export type AuditAction =
   | 'REJECT_RESTOCK'
   | 'CREATE_PREORDER'
   | 'UPDATE_PREORDER_STATUS'
+  | 'RECORD_RETURN'
 
 interface AuditParams {
   userId?: string
@@ -82,10 +83,12 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   REJECT_RESTOCK:        'Penolakan Restok',
   CREATE_PREORDER:       'Buat Pesanan Baru',
   UPDATE_PREORDER_STATUS:'Ubah Status Pesanan',
+  RECORD_RETURN:         'Catat Retur Barang',
 }
 
 // ─── Warna badge per aksi ──────────────────────────────────────
 export function getAuditActionColor(action: string): string {
+  if (action === 'RECORD_RETURN') return 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
   if (action.startsWith('DELETE') || action === 'CLEAR_LOGS' || action === 'REJECT_RESTOCK') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
   if (action.startsWith('CREATE') || action === 'APPROVE_RESTOCK')  return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
   if (action.startsWith('UPDATE') || action === 'RESTOCK_PRODUCT')

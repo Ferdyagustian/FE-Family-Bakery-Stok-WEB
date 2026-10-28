@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { ClipboardList, User, Calendar, Tag } from 'lucide-react'
 import { AUDIT_ACTION_LABELS, getAuditActionColor } from '@/lib/audit'
 import { ClearLogsButton } from '@/components/ClearLogsButton'
+import { AuditFilterBar } from '@/components/AuditFilterBar'
 
 export const revalidate = 0 // Selalu fresh — ini halaman log real-time
 
@@ -72,85 +73,15 @@ export default async function AuditPage({
       </div>
 
       {/* Filter Bar */}
-      <form method="GET" className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 sm:p-5">
-        <div className="flex flex-wrap gap-3 items-end">
-          {/* Filter Aksi */}
-          <div className="flex-1 min-w-[160px]">
-            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
-              Jenis Aktivitas
-            </label>
-            <select
-              name="action"
-              defaultValue={params.action ?? ''}
-              className="w-full h-10 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="">Semua Aktivitas</option>
-              {allActions.map(a => (
-                <option key={a} value={a}>{AUDIT_ACTION_LABELS[a]}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Filter Cabang */}
-          <div className="flex-1 min-w-[160px]">
-            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
-              Cabang
-            </label>
-            <select
-              name="storeId"
-              defaultValue={params.storeId ?? ''}
-              className="w-full h-10 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="">Semua Cabang</option>
-              {stores.map((s: any) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Filter Start Date */}
-          <div className="flex-1 min-w-[160px]">
-            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
-              Mulai Dari
-            </label>
-            <input
-              type="datetime-local"
-              name="startDate"
-              defaultValue={params.startDate ?? ''}
-              className="w-full h-10 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
-          {/* Filter End Date */}
-          <div className="flex-1 min-w-[160px]">
-            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
-              Sampai Dengan
-            </label>
-            <input
-              type="datetime-local"
-              name="endDate"
-              defaultValue={params.endDate ?? ''}
-              className="w-full h-10 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
-          {/* Tombol */}
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="h-10 px-5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors"
-            >
-              Filter
-            </button>
-            <a
-              href="/audit"
-              className="h-10 px-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-sm font-medium flex items-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              Reset
-            </a>
-          </div>
-        </div>
-      </form>
+      <AuditFilterBar
+        allActions={allActions}
+        actionLabels={AUDIT_ACTION_LABELS}
+        stores={stores}
+        defaultAction={params.action ?? ''}
+        defaultStoreId={params.storeId ?? ''}
+        defaultStartDate={params.startDate ?? ''}
+        defaultEndDate={params.endDate ?? ''}
+      />
 
       {/* Log Table */}
       <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">

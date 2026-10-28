@@ -2,7 +2,7 @@ import React, { Suspense } from 'react'
 import prisma from '@/lib/db'
 import { SalesChart } from '@/components/SalesChart'
 import { ProductSalesBreakdown } from '@/components/ProductSalesBreakdown'
-import { Store, Package, TrendingUp, CircleDollarSign, Boxes } from 'lucide-react'
+import { Store, Package, TrendingUp, CircleDollarSign, Boxes, PackageMinus } from 'lucide-react'
 import { getSession } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { formatCompactRupiah, formatFullRupiah } from '@/lib/format'
@@ -15,7 +15,7 @@ async function DashboardData() {
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-  const [stores, productCount, stockAgg, salesAgg, ordersAgg, sales, completedOrders] = await Promise.all([
+  const [stores, productCount, stockAgg, salesAgg, ordersAgg, sales, completedOrders, returnsAgg] = await Promise.all([
     prisma.store.findMany({ select: { id: true, name: true } }),
     prisma.product.findMany({
       distinct: ['name'],
@@ -68,8 +68,14 @@ async function DashboardData() {
         }
       },
       orderBy: { pickupDate: 'asc' },
+    }),
+    prisma.productReturn.aggregate({
+      where: { returnDate: { gte: thirtyDaysAgo } },
+      _sum: { quantity: true },
     })
   ])
+
+  const totalReturns = returnsAgg._sum.quantity ?? 0
 
   const completedOrderRevenue = ordersAgg._sum.totalAmount ?? 0
   const completedOrdersCount = ordersAgg._count.id ?? 0
@@ -134,7 +140,7 @@ async function DashboardData() {
   return (
     <>
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-5">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5 sm:gap-5">
         {/* 1. Total Omzet */}
         <div className="col-span-2 sm:col-span-1 lg:col-span-1 bg-gradient-to-br from-indigo-600 to-indigo-700 dark:from-indigo-600 dark:to-indigo-800 text-white rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between relative overflow-hidden">
           <div className="flex items-center justify-between z-10">
@@ -188,6 +194,15 @@ async function DashboardData() {
           value={`${totalStock.toLocaleString('id-ID')} Pcs`}
           subtitle="Inventaris cabang"
           icon={<Boxes className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+        />
+
+        {/* 6. Total Barang Retur */}
+        <StatCard
+          title="Barang Retur (30 Hari)"
+          value={`${totalReturns.toLocaleString('id-ID')} Pcs`}
+          subtitle="Roti sisa & rusak"
+          icon={<PackageMinus className="w-4 h-4 text-rose-600 dark:text-rose-400" />}
+          badge={totalReturns > 0 ? "Waste" : "Nol"}
         />
       </div>
 

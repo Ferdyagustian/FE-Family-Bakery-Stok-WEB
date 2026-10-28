@@ -4,8 +4,9 @@ import { useMemo, useState, useEffect } from 'react'
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer
 } from 'recharts'
-import { Package, Search, Trophy } from 'lucide-react'
+import { Package, Search, Trophy, Store } from 'lucide-react'
 import { formatCompactRupiah, formatFullRupiah } from '@/lib/format'
+import { CustomDropdown } from '@/components/CustomDropdown'
 
 type ProductSale = {
   productId: string
@@ -149,16 +150,17 @@ export function ProductSalesBreakdown({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <select
-            className="h-9 text-xs sm:text-sm rounded-xl border border-gray-200 dark:border-gray-700 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200"
+          <CustomDropdown
             value={storeFilter}
-            onChange={e => setStoreFilter(e.target.value)}
-          >
-            <option value="all">Semua Cabang</option>
-            {stores.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
+            onChange={setStoreFilter}
+            icon={<Store className="w-3.5 h-3.5" />}
+            options={[
+              { value: 'all', label: 'Semua Cabang' },
+              ...stores.map(s => ({ value: s.id, label: s.name }))
+            ]}
+            className="w-full sm:w-44"
+            size="sm"
+          />
 
           <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl border border-gray-200 dark:border-gray-700">
             {(['daily', 'monthly', 'yearly'] as const).map(f => (

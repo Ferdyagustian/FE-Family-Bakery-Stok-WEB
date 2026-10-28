@@ -20,7 +20,7 @@ export function generateLowStockEmailHTML(products: any[]) {
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
       <div style="background-color: #fef3c7; border: 1px solid #fde68a; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
-        <h2 style="color: #92400e; margin: 0;">⚠️ Peringatan Stok Hampir Habis</h2>
+        <h2 style="color: #92400e; margin: 0;">Peringatan Stok Hampir Habis</h2>
         <p style="color: #b45309; margin: 5px 0 0 0;">
           Ada <strong>${products.length} produk</strong> yang perlu segera di-restock.
         </p>

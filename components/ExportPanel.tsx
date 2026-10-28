@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { formatCompactRupiah, formatFullRupiah } from '@/lib/format'
+import { CustomDropdown } from '@/components/CustomDropdown'
 
 type StoreOption = { id: string; name: string }
 
@@ -77,7 +78,7 @@ interface ExportPanelProps {
 export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: ExportPanelProps) {
   const isManager = userRole === 'MANAGER'
   
-  const [type, setType] = useState<'sales' | 'stock'>('sales')
+  const [type, setType] = useState<'sales' | 'stock' | 'returns'>('sales')
   const [storeId, setStoreId] = useState<string>(isManager && userStoreId ? userStoreId : '')
   const [datePreset, setDatePreset] = useState('30days')
   const [customFrom, setCustomFrom] = useState('')
@@ -106,7 +107,7 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
       const activeStore = isManager && userStoreId ? userStoreId : storeId
       if (activeStore) params.set('storeId', activeStore)
       
-      if (type === 'sales') {
+      if (type !== 'stock') {
         if (dateRange.from) params.set('from', dateRange.from)
         if (dateRange.to) params.set('to', dateRange.to)
       }
@@ -159,6 +160,16 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
     return data.reduce((sum, item) => sum + (item.profit || Math.round((item.total || 0) * 0.35)), 0)
   }, [data, type])
 
+  const totalQtyReturned = useMemo(() => {
+    if (type !== 'returns') return 0
+    return data.reduce((sum, item) => sum + (item.jumlah || 0), 0)
+  }, [data, type])
+
+  const totalEstimatedLoss = useMemo(() => {
+    if (type !== 'returns') return 0
+    return data.reduce((sum, item) => sum + (item.estimasiNilai || 0), 0)
+  }, [data, type])
+
   // Pagination Slice
   const totalPages = Math.ceil(filteredData.length / pageSize) || 1
   const paginatedData = useMemo(() => {
@@ -175,6 +186,7 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
 
     let sheetData: Record<string, any>[]
     let fileName: string
+    let sheetName: string
 
     const nowStr = new Date().toISOString().split('T')[0]
 
@@ -189,15 +201,31 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
         'Total Omzet (Rp)': s.total,
         'Estimasi Profit (Rp)': s.profit || Math.round(s.total * 0.35),
       }))
+      sheetName = 'Penjualan'
       fileName = `Laporan_Penjualan_${storeId ? 'Cabang' : 'Semua_Cabang'}_${nowStr}.xlsx`
+    } else if (type === 'returns') {
+      sheetData = data.map((r, i) => ({
+        'No.': i + 1,
+        'Tanggal & Waktu': formatDateSafe(r.tanggal),
+        'Cabang': r.cabang,
+        'Nama Produk': r.produk,
+        'Jumlah Retur (Qty)': r.jumlah,
+        'Alasan Retur': r.alasan,
+        'Keterangan': r.keterangan,
+        'Dicatat Oleh': r.dicatatOleh,
+        'Estimasi Kerugian (Rp)': r.estimasiNilai,
+      }))
+      sheetName = 'Barang Retur'
+      fileName = `Laporan_Barang_Retur_${storeId ? 'Cabang' : 'Semua_Cabang'}_${nowStr}.xlsx`
     } else {
       sheetData = data
+      sheetName = 'Stok Produk'
       fileName = `Laporan_Stok_Produk_${storeId ? 'Cabang' : 'Semua_Cabang'}_${nowStr}.xlsx`
     }
 
     const ws = XLSX.utils.json_to_sheet(sheetData)
     const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, type === 'sales' ? 'Penjualan' : 'Stok Produk')
+    XLSX.utils.book_append_sheet(wb, ws, sheetName)
     XLSX.writeFile(wb, fileName)
   }
 
@@ -215,7 +243,7 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
             </span>
           </div>
 
-          <div className="inline-flex rounded-xl bg-gray-100 dark:bg-gray-800 p-1 border border-gray-200/60 dark:border-gray-700/60">
+          <div className="inline-flex rounded-xl bg-gray-100 dark:bg-gray-800 p-1 border border-gray-200/60 dark:border-gray-700/60 flex-wrap">
             <button
               onClick={() => setType('sales')}
               className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
@@ -236,6 +264,16 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
             >
               Laporan Stok Produk
             </button>
+            <button
+              onClick={() => setType('returns')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                type === 'returns'
+                  ? 'bg-white dark:bg-gray-900 text-rose-600 dark:text-rose-400 shadow-xs'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+              }`}
+            >
+              Barang Retur
+            </button>
           </div>
         </div>
 
@@ -247,49 +285,47 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
             <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
               Cabang Toko
             </label>
-            <div className="relative">
-              <select
-                value={isManager && userStoreId ? userStoreId : storeId}
-                onChange={(e) => setStoreId(e.target.value)}
-                disabled={isManager}
-                className="w-full h-10 px-3 pr-8 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs sm:text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-75 disabled:cursor-not-allowed appearance-none shadow-xs"
-              >
-                {!isManager && <option value="">Semua Cabang (Keseluruhan)</option>}
-                {stores.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-              <Store className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            </div>
+            <CustomDropdown
+              value={isManager && userStoreId ? userStoreId : storeId}
+              onChange={setStoreId}
+              disabled={isManager}
+              icon={<Store className="w-3.5 h-3.5" />}
+              options={[
+                ...(!isManager ? [{ value: '', label: 'Semua Cabang (Keseluruhan)' }] : []),
+                ...stores.map((s) => ({ value: s.id, label: s.name }))
+              ]}
+              placeholder="Pilih Cabang..."
+              className="w-full"
+              buttonClassName="h-10"
+            />
           </div>
 
-          {/* Rentang Tanggal (Hanya Penjualan) */}
-          {type === 'sales' && (
+          {/* Rentang Tanggal (Penjualan & Retur) */}
+          {type !== 'stock' && (
             <div>
               <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
-                Periode Waktu
+                {type === 'returns' ? 'Periode Retur' : 'Periode Waktu'}
               </label>
-              <div className="relative">
-                <select
-                  value={datePreset}
-                  onChange={(e) => setDatePreset(e.target.value)}
-                  className="w-full h-10 px-3 pr-8 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs sm:text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none shadow-xs"
-                >
-                  <option value="today">Hari Ini</option>
-                  <option value="7days">7 Hari Terakhir</option>
-                  <option value="30days">30 Hari Terakhir</option>
-                  <option value="month">Bulan Ini (Mulai Tgl 1)</option>
-                  <option value="custom">Pilih Tanggal Kustom</option>
-                </select>
-                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-              </div>
+              <CustomDropdown
+                value={datePreset}
+                onChange={setDatePreset}
+                icon={<Calendar className="w-3.5 h-3.5" />}
+                options={[
+                  { value: 'today', label: 'Hari Ini' },
+                  { value: '7days', label: '7 Hari Terakhir' },
+                  { value: '30days', label: '30 Hari Terakhir' },
+                  { value: 'month', label: 'Bulan Ini (Mulai Tgl 1)' },
+                  { value: 'custom', label: 'Pilih Tanggal Kustom' }
+                ]}
+                placeholder="Pilih Periode..."
+                className="w-full"
+                buttonClassName="h-10"
+              />
             </div>
           )}
 
           {/* Custom Date Picker */}
-          {type === 'sales' && datePreset === 'custom' && (
+          {type !== 'stock' && datePreset === 'custom' && (
             <div className="grid grid-cols-2 gap-2 sm:col-span-2 lg:col-span-1">
               <div>
                 <label className="block text-[11px] font-medium text-gray-500 mb-1">Dari</label>
@@ -402,6 +438,56 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
         </div>
       )}
 
+      {/* ── 2b. KPI Summary Cards (Returns Mode) ─────────────── */}
+      {type === 'returns' && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 border border-gray-100 dark:border-gray-800 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Total Barang Retur</span>
+              <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400">
+                <PackageCheck className="w-4 h-4" />
+              </div>
+            </div>
+            <p className="text-lg sm:text-xl font-heading font-extrabold text-rose-600 dark:text-rose-400 mt-2">
+              {totalQtyReturned.toLocaleString('id-ID')} <span className="text-xs font-normal text-gray-500">unit</span>
+            </p>
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+              Roti/cake tidak terjual atau rusak
+            </p>
+          </div>
+
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 border border-gray-100 dark:border-gray-800 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Estimasi Nilai Barang</span>
+              <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
+                <DollarSign className="w-4 h-4" />
+              </div>
+            </div>
+            <p className="text-lg sm:text-xl font-heading font-extrabold text-gray-900 dark:text-white mt-2" title={formatFullRupiah(totalEstimatedLoss)}>
+              {formatCompactRupiah(totalEstimatedLoss)}
+            </p>
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+              Nilai retail barang yang diretur
+            </p>
+          </div>
+
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 border border-gray-100 dark:border-gray-800 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Frekuensi Pencatatan</span>
+              <div className="p-2 rounded-xl bg-violet-50 dark:bg-violet-950/50 text-violet-600 dark:text-violet-400">
+                <Receipt className="w-4 h-4" />
+              </div>
+            </div>
+            <p className="text-lg sm:text-xl font-heading font-extrabold text-gray-900 dark:text-white mt-2">
+              {data.length.toLocaleString('id-ID')} kali
+            </p>
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+              Riwayat retur tercatat
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ── 3. Interactive Data Table ─────────────────────── */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-800 overflow-hidden">
         
@@ -410,7 +496,11 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
           <div className="flex items-center gap-2">
             <Table2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
             <h3 className="font-heading font-bold text-sm sm:text-base text-gray-900 dark:text-white">
-              {type === 'sales' ? 'Rincian Transaksi Penjualan' : 'Rincian Stok Produk Toko'}
+              {type === 'sales'
+                ? 'Rincian Transaksi Penjualan'
+                : type === 'returns'
+                ? 'Rincian Barang Retur & Sisa'
+                : 'Rincian Stok Produk Toko'}
             </h3>
             <span className="text-xs text-gray-400 dark:text-gray-500">
               ({filteredData.length} data)
@@ -459,6 +549,18 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
                     <th className="py-3 px-4 text-right">Total Omzet</th>
                     <th className="py-3 px-4 text-right">Profit (35%)</th>
                   </tr>
+                ) : type === 'returns' ? (
+                  <tr>
+                    <th className="py-3 px-4">No.</th>
+                    <th className="py-3 px-4">Waktu (WIB)</th>
+                    <th className="py-3 px-4">Cabang</th>
+                    <th className="py-3 px-4">Nama Produk</th>
+                    <th className="py-3 px-4 text-center">Qty Retur</th>
+                    <th className="py-3 px-4">Alasan</th>
+                    <th className="py-3 px-4">Keterangan</th>
+                    <th className="py-3 px-4">Dicatat Oleh</th>
+                    <th className="py-3 px-4 text-right">Nilai Barang</th>
+                  </tr>
                 ) : (
                   <tr>
                     <th className="py-3 px-4">No.</th>
@@ -487,6 +589,28 @@ export function ExportPanel({ stores, userRole = 'ADMIN', userStoreId = '' }: Ex
                         <td className="py-3 px-4 text-right font-bold whitespace-nowrap">Rp {Number(row.total).toLocaleString('id-ID')}</td>
                         <td className="py-3 px-4 text-right text-emerald-600 dark:text-emerald-400 font-semibold whitespace-nowrap">
                           Rp {Number(row.profit || Math.round(row.total * 0.35)).toLocaleString('id-ID')}
+                        </td>
+                      </tr>
+                    )
+                  } else if (type === 'returns') {
+                    const formattedDate = formatDateSafe(row.tanggal)
+
+                    return (
+                      <tr key={idx} className="hover:bg-gray-50/70 dark:hover:bg-gray-800/40 transition-colors">
+                        <td className="py-3 px-4 text-gray-400">{globalIdx}</td>
+                        <td className="py-3 px-4 font-mono text-[11px] text-gray-600 dark:text-gray-400 whitespace-nowrap">{formattedDate}</td>
+                        <td className="py-3 px-4 font-semibold text-gray-900 dark:text-white whitespace-nowrap">{row.cabang}</td>
+                        <td className="py-3 px-4 font-medium">{row.produk}</td>
+                        <td className="py-3 px-4 text-center font-bold text-rose-600 dark:text-rose-400">{row.jumlah} unit</td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/40">
+                            {row.alasan}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{row.keterangan || '-'}</td>
+                        <td className="py-3 px-4 text-gray-500 whitespace-nowrap">{row.dicatatOleh || '-'}</td>
+                        <td className="py-3 px-4 text-right font-bold whitespace-nowrap text-gray-700 dark:text-gray-300">
+                          Rp {Number(row.estimasiNilai || 0).toLocaleString('id-ID')}
                         </td>
                       </tr>
                     )

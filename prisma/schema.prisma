@@ -36,6 +36,7 @@ model Store {
   sales         Sale[]
   restockRequests RestockRequest[]
   customOrders    CustomOrder[]
+  returns       ProductReturn[]
   users     User[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -52,6 +53,7 @@ model Product {
   storeProducts StoreProduct[]
   restockRequests  RestockRequest[]
   customOrderItems CustomOrderItem[]
+  returns          ProductReturn[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -187,4 +189,22 @@ model CustomOrderItem {
 
   @@index([orderId])
   @@index([productId])
+}
+
+model ProductReturn {
+  id          String   @id @default(cuid())
+  storeId     String
+  productId   String
+  quantity    Int
+  reason      String
+  notes       String?
+  returnedBy  String?
+  returnDate  DateTime @default(now())
+
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, returnDate])
+  @@index([productId])
+  @@index([returnDate])
 }

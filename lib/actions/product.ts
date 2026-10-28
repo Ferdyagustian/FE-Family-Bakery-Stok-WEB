@@ -670,14 +670,14 @@ export async function submitRestockRequest(
     // Kirim notifikasi bot Telegram ke grup Super Admin
     const totalUnits = validItems.reduce((acc, curr) => acc + curr.qty, 0)
     await sendTelegramAlert(`
-📦 <b>PERMINTAAN RESTOK BARU MENUNGGU PERSETUJUAN</b>
+<b>PERMINTAAN RESTOK BARU MENUNGGU PERSETUJUAN</b>
 Nomor Batch: <code>${batchNo}</code>
 Cabang: <b>${store?.name || 'Cabang'}</b>
 Diajukan oleh: <b>${requester}</b>
 Total Produk: <b>${validItems.length} varian (${totalUnits} unit)</b>
 Catatan: <i>${notes ? notes : '-'}</i>
 
-👉 <i>Buka Dashboard Cabang untuk menyetujui penyetokan.</i>
+<i>Buka Dashboard Cabang untuk menyetujui penyetokan.</i>
 `)
 
     revalidatePath(`/stores/${storeId}`)
@@ -752,7 +752,7 @@ export async function approveRestockBatch(batchNo: string) {
 
     const totalUnits = requests.reduce((acc, r) => acc + r.quantity, 0)
     await sendTelegramAlert(`
-✅ <b>RESTOK BERHASIL DISETUJUI</b>
+<b>RESTOK BERHASIL DISETUJUI</b>
 Nomor Batch: <code>${batchNo}</code>
 Cabang: <b>${storeName}</b>
 Disetujui oleh: <b>${user.username}</b>
@@ -809,7 +809,7 @@ export async function rejectRestockBatch(batchNo: string, reason?: string) {
     })
 
     await sendTelegramAlert(`
-❌ <b>PERMINTAAN RESTOK DITOLAK</b>
+<b>PERMINTAAN RESTOK DITOLAK</b>
 Nomor Batch: <code>${batchNo}</code>
 Cabang: <b>${storeName}</b>
 Ditolak oleh: <b>${user.username}</b>
@@ -884,5 +884,112 @@ export async function getPendingRestockBatches(storeId?: string) {
   } catch (error) {
     console.error('Error getPendingRestockBatches:', error)
     return []
+  }
+}
+
+// ── 16. Record Product Return (Barang Retur / Rusak / Expired) ───────
+export async function recordProductReturn(
+  storeId: string,
+  items: { productId: string; quantity: number; reason: string; notes?: string }[]
+) {
+  try {
+    await assertStoreAccess(storeId)
+  } catch {
+    return { error: 'Unauthorized or Forbidden' }
+  }
+
+  const validItems = items.filter(i => i.quantity > 0)
+  if (!validItems.length || !storeId) {
+    return { error: 'Tidak ada item retur yang valid' }
+  }
+
+  try {
+    const user = await getSessionUser()
+    const productIds = validItems.map(i => i.productId)
+
+    const storeProducts = await prisma.storeProduct.findMany({
+      where: {
+        storeId,
+        productId: { in: productIds }
+      },
+      include: { product: true }
+    })
+
+    const spMap = new Map(storeProducts.map(sp => [sp.productId, sp]))
+
+    for (const item of validItems) {
+      const sp = spMap.get(item.productId)
+      if (!sp) {
+        return { error: 'Produk tidak ditemukan di cabang ini' }
+      }
+      if (sp.stockQuantity < item.quantity) {
+        return {
+          error: `Stok "${sp.product.name}" tidak mencukupi untuk diretur (Tersedia: ${sp.stockQuantity}, Retur: ${item.quantity})`
+        }
+      }
+    }
+
+    const now = new Date()
+    const returnedByName = user?.name || user?.username || 'Staf Kios'
+
+    await prisma.$transaction(async (tx) => {
+      for (const item of validItems) {
+        const sp = spMap.get(item.productId)!
+
+        const updateResult = await tx.storeProduct.updateMany({
+          where: {
+            storeId,
+            productId: item.productId,
+            stockQuantity: { gte: item.quantity }
+          },
+          data: {
+            stockQuantity: { decrement: item.quantity }
+          }
+        })
+
+        if (updateResult.count === 0) {
+          throw new Error(`Stok "${sp.product.name}" tidak mencukupi saat proses retur berlangsung.`)
+        }
+
+        await tx.productReturn.create({
+          data: {
+            storeId,
+            productId: item.productId,
+            quantity: item.quantity,
+            reason: item.reason,
+            notes: item.notes || null,
+            returnedBy: returnedByName,
+            returnDate: now
+          }
+        })
+      }
+    })
+
+    await writeAuditLog({
+      userId: user?.id,
+      username: user?.username,
+      action: 'RECORD_RETURN',
+      entityType: 'StoreProduct',
+      storeId,
+      detail: {
+        totalItems: validItems.length,
+        items: validItems.map(i => ({
+          productId: i.productId,
+          productName: spMap.get(i.productId)?.product.name,
+          quantity: i.quantity,
+          reason: i.reason,
+          notes: i.notes
+        }))
+      }
+    })
+
+    revalidatePath(`/stores/${storeId}`)
+    revalidatePath('/stores')
+    revalidatePath('/reports')
+    revalidatePath('/')
+    return { success: true, count: validItems.length }
+  } catch (error: any) {
+    console.error('Error recordProductReturn:', error)
+    return { error: error?.message || 'Gagal mencatat barang retur' }
   }
 }

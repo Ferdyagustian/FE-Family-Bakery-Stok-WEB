@@ -115,18 +115,18 @@ export async function createCustomOrder(data: {
       .join('\n')
 
     await sendTelegramAlert(`
-🎂 <b>PESANAN PRODUKSI BARU TERCATAT</b>
+<b>PESANAN PRODUKSI BARU TERCATAT</b>
 Nomor Pesanan: <code>${orderNo}</code>
 Pemesan: <b>${customerName.trim()}</b> (${phone.trim()})
 Target Roti Jadi: <b>${pickupDate}</b>
 Cabang Pengambilan: <b>${store?.name || 'Cabang'}</b>
 Catatan Khusus: <i>${notes ? notes.trim() : '-'}</i>
 
-📋 <b>Daftar Roti yang Harus Dibuat:</b>
+<b>Daftar Roti yang Harus Dibuat:</b>
 ${itemsListStr}
 
-💵 Total Biaya: <b>${formatFullRupiah(calculatedTotal)}</b>
-💰 Uang Muka (DP): <b>${formatFullRupiah(depositPaid)}</b>
+Total Biaya: <b>${formatFullRupiah(calculatedTotal)}</b>
+Uang Muka (DP): <b>${formatFullRupiah(depositPaid)}</b>
 Sisa Tagihan: <b>${formatFullRupiah(Math.max(0, calculatedTotal - depositPaid))}</b>
 `)
 
@@ -176,7 +176,7 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus) {
     if (status === 'READY' || status === 'COMPLETED') {
       const statusLabel = status === 'READY' ? 'SIAP DIAMBIL / DIKIRIM' : 'SELESAI (LUNAS & DIAMBIL)'
       await sendTelegramAlert(`
-📢 <b>STATUS PESANAN DIPERBARUI</b>
+<b>STATUS PESANAN DIPERBARUI</b>
 Nomor: <code>${existing.orderNo}</code>
 Pelanggan: <b>${existing.customerName}</b>
 Status Baru: <b>${statusLabel}</b>

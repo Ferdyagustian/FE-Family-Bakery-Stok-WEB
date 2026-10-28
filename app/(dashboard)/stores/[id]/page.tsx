@@ -9,6 +9,7 @@ import { getSession } from '@/lib/session'
 import { ManageStoreUsers } from '@/components/ManageStoreUsers'
 import { getPendingRestockBatches } from '@/lib/actions/product'
 import { PendingRestockList } from '@/components/PendingRestockList'
+import { RecordReturnModal } from '@/components/RecordReturnModal'
 
 export const revalidate = 0
 
@@ -92,7 +93,8 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
             </h2>
             <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Kelola stok dan catat penjualan produk di cabang ini</p>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+            <RecordReturnModal products={storeProductsList} storeId={storeId} />
             <Link
               href={`/stores/${storeId}/restock`}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-primary-200 bg-primary-50 dark:bg-primary-950/20 text-primary-700 text-sm font-semibold hover:bg-primary-100 transition-colors"

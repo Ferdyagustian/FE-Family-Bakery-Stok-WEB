@@ -63,7 +63,7 @@ export async function GET(request: Request) {
     const data = await resend.emails.send({
       from: 'Family Bakery <onboarding@resend.dev>', // onboarding@resend.dev untuk testing sebelum domain diverifikasi
       to: notificationEmail,
-      subject: `⚠️ Peringatan: ${lowStockProducts.length} Produk Hampir Habis`,
+      subject: `Peringatan: ${lowStockProducts.length} Produk Hampir Habis`,
       html: generateLowStockEmailHTML(lowStockProducts),
     })
 

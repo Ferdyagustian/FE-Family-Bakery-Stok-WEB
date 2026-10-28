@@ -39,9 +39,9 @@ export async function GET(request: NextRequest) {
     const from = searchParams.get("from");
     const to = searchParams.get("to");
 
-    if (!type || !["sales", "stock"].includes(type)) {
+    if (!type || !["sales", "stock", "returns"].includes(type)) {
       return NextResponse.json(
-        { error: "Parameter 'type' harus 'sales' atau 'stock'" },
+        { error: "Parameter 'type' harus 'sales', 'stock', atau 'returns'" },
         { status: 400 }
       );
     }
@@ -106,6 +106,45 @@ export async function GET(request: NextRequest) {
             : p.stockQuantity < 10
             ? "Menipis"
             : "Aman",
+      }));
+
+      return NextResponse.json({ data: rows });
+    }
+
+    // ── Export: Barang Retur ──────────────────────
+    if (type === "returns") {
+      const dateFilter: Record<string, Date> = {};
+      if (from) dateFilter.gte = new Date(from);
+      if (to) {
+        const toDate = new Date(to);
+        toDate.setHours(23, 59, 59, 999);
+        dateFilter.lte = toDate;
+      }
+
+      const returns = await prisma.productReturn.findMany({
+        where: {
+          ...(targetStoreId ? { storeId: targetStoreId } : {}),
+          ...(Object.keys(dateFilter).length > 0
+            ? { returnDate: dateFilter }
+            : {}),
+        },
+        include: {
+          store: { select: { name: true } },
+          product: { select: { name: true, price: true } },
+        },
+        orderBy: { returnDate: "desc" },
+      });
+
+      const rows = returns.map((r: any, i: number) => ({
+        no: i + 1,
+        tanggal: r.returnDate instanceof Date ? r.returnDate.toISOString() : (r.returnDate ? new Date(r.returnDate).toISOString() : new Date().toISOString()),
+        cabang: r.store?.name || 'Cabang',
+        produk: r.product?.name || 'Produk',
+        jumlah: r.quantity || 0,
+        alasan: r.reason || 'Tidak Terjual',
+        keterangan: r.notes || '-',
+        dicatatOleh: r.returnedBy || 'Staf Kios',
+        estimasiNilai: (r.quantity || 0) * (r.product?.price || 0),
       }));
 
       return NextResponse.json({ data: rows });

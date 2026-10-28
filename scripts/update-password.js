@@ -42,14 +42,14 @@ async function main() {
     },
   })
 
-  console.log('✅ Akun admin berhasil dikonfigurasi:', admin.username)
+  console.log('[OK] Akun admin berhasil dikonfigurasi:', admin.username)
   console.log('   Role:', admin.role)
   console.log('   ID:', admin.id)
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Gagal:', e.message)
+    console.error('[ERROR] Gagal:', e.message)
     process.exit(1)
   })
   .finally(async () => {
